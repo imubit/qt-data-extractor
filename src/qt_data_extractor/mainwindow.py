@@ -67,39 +67,23 @@ class MainWindow(QtCore.QObject):
             parentWidget=self._w,
         )
         self._dialogManageConnections.setWindowTitle(WINDOW_DEFAULT_TITLE)
-        self._activePanel = "Left"
 
         self.threadpool = QtCore.QThreadPool()
 
-    def _showMsgBox(self, msg, icon=QMessageBox.Icon.Information):
+    def _show_msg_box(self, msg, icon=QMessageBox.Icon.Information):
         mb = QMessageBox(self._w)
         mb.setIcon(QMessageBox.Icon.Information)
         mb.setWindowTitle(self._w.windowTitle())
         mb.setText(msg)
         return mb.exec_()
 
-    @property
-    def _inactivePanel(self):
-        return "Right" if self._activePanel == "Left" else "Right"
-
     @staticmethod
     def _connection_title(conn_name, conn_type):
         return f"{conn_name} ({conn_type})"
 
-    def _getPanelData(self, active=True):
-        panel = (
-            "Right"
-            if self._activePanel == "Right"
-            and active
-            or self._activePanel == "Left"
-            and not active
-            else "Left"
-        )
-        connectionsComboWidget = getattr(self._w, f"combo{panel}Connection")
-        tagTree = getattr(self._w, f"tree{panel}TagHierarchy")
-
-        conn = connectionsComboWidget.currentData()
-        items = tagTree.selectedItems()
+    def _get_panel_data(self):
+        conn = self._w.comboLeftConnection.currentData()
+        items = self._w.treeLeftTagHierarchy.selectedItems()
 
         # for i in items:
         #     print(i.data(0, QtCore.Qt.UserRole), ':::', i.parent().data(0, QtCore.Qt.UserRole))
@@ -111,28 +95,27 @@ class MainWindow(QtCore.QObject):
 
         return conn, tags
 
-    def _getSelectedTags(self):
+    def _get_selected_tags(self):
         return [
             self._w.treeSelectedTags.topLevelItem(i).data(0, QtCore.Qt.UserRole)
             for i in range(0, self._w.treeSelectedTags.topLevelItemCount())
         ]
 
     @QtCore.Slot(str)
-    def onConnectionChange(self, panel):
-        connectionsComboWidget = getattr(self._w, f"combo{panel}Connection")
-        current_conn = connectionsComboWidget.currentData()
+    def on_connection_change(self):
+        current_conn = self._w.comboLeftConnection.currentData()
         if not current_conn:
-            self._refreshCurrentConnectionView(panel, current_conn=None)
+            self._refresh_current_connection_view(current_conn=None)
             return
 
         if current_conn == "add_new":
-            connectionsComboWidget.setCurrentIndex(-1)
-            self.onCreateNewConnection(panel)
+            self._w.comboLeftConnection.setCurrentIndex(-1)
+            self.on_create_new_connection()
             return
 
         if not current_conn["enabled"]:
-            self._refreshCurrentConnectionView(panel, current_conn)
-            self._showMsgBox(
+            self._refresh_current_connection_view(current_conn)
+            self._show_msg_box(
                 f"Connection '{current_conn['name']}' disabled!",
                 icon=QMessageBox.Icon.Warning,
             )
@@ -146,18 +129,18 @@ class MainWindow(QtCore.QObject):
             try:
                 self._api.enable_connection(current_conn["name"])
             except TargetConnectionError as e:
-                self._refreshCurrentConnectionView(panel, current_conn)
-                self._showMsgBox(
+                self._refresh_current_connection_view(current_conn)
+                self._show_msg_box(
                     f"Error connecting '{current_conn['name']}': {str(e)}",
                     icon=QMessageBox.Icon.Error,
                 )
                 return
 
         # conn_info = self._api.connection_info(current_conn['name'])
-        self._refreshCurrentConnectionView(panel, current_conn, conn_info)
+        self._refresh_current_connection_view(current_conn, conn_info)
 
     @QtCore.Slot()
-    def onCreateNewConnection(self, panel):
+    def on_create_new_connection(self):
         if self._dialogCreateConnection.exec_() != QDialog.Accepted:
             return
 
@@ -167,11 +150,8 @@ class MainWindow(QtCore.QObject):
 
         try:
             self._api.create_connection(**args)
-            self._refreshConnections("Left")
-            connectionsComboWidget = getattr(
-                self._w, f"combo{self._activePanel}Connection"
-            )
-            connectionsComboWidget.setCurrentText(
+            self._refresh_connections()
+            self._w.comboLeftConnection.setCurrentText(
                 self._connection_title(args["conn_name"], args["conn_type"])
             )
 
@@ -179,7 +159,7 @@ class MainWindow(QtCore.QObject):
             QMessageBox.critical(self._w, self._w.windowTitle(), str(e))
 
     @QtCore.Slot()
-    def onManageConnections(self):
+    def on_manage_connections(self):
         delete_button = QPushButton(self.tr("&Delete"))
 
         # self._dialogManageConnections.tableConnections.clear()
@@ -218,8 +198,7 @@ class MainWindow(QtCore.QObject):
                     self._dialogManageConnections.tableConnections.removeRow(
                         self._dialogManageConnections.tableConnections.currentRow()
                     )
-                    self._refreshConnections("Left")
-                    self._refreshConnections("Right")
+                    self._refresh_connections()
 
             delete_button.clicked.connect(onDeleteConnection)
             self._dialogManageConnections.buttonBox.addButton(
@@ -237,25 +216,23 @@ class MainWindow(QtCore.QObject):
             self._dialogManageConnections.buttonBox.removeButton(delete_button)
 
     @QtCore.Slot()
-    def onViewTags(self):
-        source_conn, source_tags = self._getPanelData()
-        timeFromFilterWidget = getattr(self._w, f"dateTime{self._activePanel}From")
-        timeToFilterWidget = getattr(self._w, f"dateTime{self._activePanel}To")
+    def on_view_tags(self):
+        source_conn, source_tags = self._get_panel_data()
 
         if not source_tags:
-            self._showMsgBox("No tags selected!")
+            self._show_msg_box("No tags selected!")
             return
 
         try:
             df = self._api.read_tag_values_period(
                 source_conn["name"],
                 list(source_tags.keys()),
-                first_timestamp=timeFromFilterWidget.dateTime().toPython(),
-                last_timestamp=timeToFilterWidget.dateTime().toPython(),
+                first_timestamp=self._w.dateTimeLeftFrom.dateTime().toPython(),
+                last_timestamp=self._w.dateTimeLeftTo.dateTime().toPython(),
             )
 
             if len(df) == 0:
-                self._showMsgBox("No data available in the selected period!")
+                self._show_msg_box("No data available in the selected period!")
                 return
 
             dlg = DataTableDialog(df, parent=self._w)
@@ -265,7 +242,7 @@ class MainWindow(QtCore.QObject):
             QMessageBox.critical(self._w, self._w.windowTitle(), str(e))
 
     @QtCore.Slot()
-    def onAddSelectedTags(self):
+    def on_add_selected_tags(self):
         source_items = self._w.treeLeftTagHierarchy.selectedItems()
 
         source_tags = {
@@ -276,7 +253,7 @@ class MainWindow(QtCore.QObject):
             return
 
         for i, tag_name in enumerate(source_tags):
-            if tag_name in self._getSelectedTags():
+            if tag_name in self._get_selected_tags():
                 continue
 
             row = [tag_name]
@@ -287,45 +264,45 @@ class MainWindow(QtCore.QObject):
 
             self._w.treeSelectedTags.addTopLevelItem(item)
 
-        self._markSelectedTags()
+        self._mark_selected_tags()
 
         @QtCore.Slot()
-        def onTreeSelectionChanged():
-            selectedItems = len(self._w.treeSelectedTags.selectedItems())
-            totalItems = self._w.treeSelectedTags.topLevelItemCount()
+        def on_tree_selection_changed():
+            selected_items = len(self._w.treeSelectedTags.selectedItems())
+            total_items = self._w.treeSelectedTags.topLevelItemCount()
             self._w.labelRightPanelStatus.setText(
-                f"{selectedItems} / {totalItems} tags"
-                if selectedItems > 0
-                else f"{totalItems} tags"
+                f"{selected_items} / {total_items} tags"
+                if selected_items > 0
+                else f"{total_items} tags"
             )
 
-        self._w.treeSelectedTags.itemSelectionChanged.connect(onTreeSelectionChanged)
-        onTreeSelectionChanged()
+        self._w.treeSelectedTags.itemSelectionChanged.connect(on_tree_selection_changed)
+        on_tree_selection_changed()
 
     @QtCore.Slot()
-    def onRemoveSelectedTags(self, all):
+    def on_remove_selected_tags(self, all):
         if all:
             self._w.treeSelectedTags.clear()
-            self._markSelectedTags()
+            self._mark_selected_tags()
             return
 
         root = self._w.treeSelectedTags.invisibleRootItem()
         for item in self._w.treeSelectedTags.selectedItems():
             (item.parent() or root).removeChild(item)
 
-        self._markSelectedTags()
+        self._mark_selected_tags()
 
     @QtCore.Slot()
-    def onCopyTags(self):
+    def on_copy_tags(self):
         source_conn = self._w.comboLeftConnection.currentData()
-        source_tags = self._getSelectedTags()
+        source_tags = self._get_selected_tags()
 
         if not source_tags:
-            self._showMsgBox("No tags selected!")
+            self._show_msg_box("No tags selected!")
             return
 
         if not self._w.comboArchiveDirectory.currentText():
-            self._showMsgBox("Archive directory not selected!")
+            self._show_msg_box("Archive directory not selected!")
             return
 
         now = datetime.now()
@@ -335,17 +312,16 @@ class MainWindow(QtCore.QObject):
             f'extractor-output-v{SHORT_VERSION}-{now.strftime("%Y-%m-%dT%H-%M-%S")}',
         )
 
-        timeFromFilterWidget = getattr(self._w, f"dateTime{self._activePanel}From")
-        timeToFilterWidget = getattr(self._w, f"dateTime{self._activePanel}To")
-
         self._dialogCopyPrompt.labelCopyDescription.setText(
             f"Extract {len(source_tags)} tags to"
         )
         self._dialogCopyPrompt.comboCopyTarget.addItem(
             self._w.comboArchiveDirectory.currentText()
         )
-        self._dialogCopyPrompt.dateTimeFrom.setDateTime(timeFromFilterWidget.dateTime())
-        self._dialogCopyPrompt.dateTimeTo.setDateTime(timeToFilterWidget.dateTime())
+        self._dialogCopyPrompt.dateTimeFrom.setDateTime(
+            self._w.dateTimeLeftFrom.dateTime()
+        )
+        self._dialogCopyPrompt.dateTimeTo.setDateTime(self._w.dateTimeLeftTo.dateTime())
         self._dialogCopyPrompt.comboSampleRate.setCurrentIndex(
             self._w.comboSampleRate.currentIndex()
         )
@@ -468,7 +444,7 @@ class MainWindow(QtCore.QObject):
                 self._dialogCopyProgress.textExtractionLog.append(
                     "Extraction finished successfuly!"
                 )
-                self.onRemoveSelectedTags(all=True)
+                self.on_remove_selected_tags(all=True)
 
             def complete_error(result):
                 self._dialogCopyProgress.labelCopy.setText("Extraction Failed!")
@@ -507,8 +483,8 @@ class MainWindow(QtCore.QObject):
         except Exception as e:
             QMessageBox.critical(self._w, self._w.windowTitle(), str(e))
 
-    def _markSelectedTags(self):
-        selected_tags = self._getSelectedTags()
+    def _mark_selected_tags(self):
+        selected_tags = self._get_selected_tags()
 
         font_deselected = QtGui.QFont()
         font_deselected.setBold(False)
@@ -525,14 +501,13 @@ class MainWindow(QtCore.QObject):
                     i, font_selected if tag_name in selected_tags else font_deselected
                 )
 
-    def _refreshTagsTree(self, panel, filter, conn_name, display_attributes):
-        treeWidget = getattr(self._w, f"tree{panel}TagHierarchy")
-        statusWidget = getattr(self._w, f"label{panel}PanelStatus")
-
+    def _refresh_tags_tree(self, filter, conn_name, display_attributes):
         # Prepare headers
-        treeWidget.clear()
-        treeWidget.setColumnCount(len(display_attributes))
-        treeWidget.setHeaderLabels([a["Name"] for a in display_attributes.values()])
+        self._w.treeLeftTagHierarchy.clear()
+        self._w.treeLeftTagHierarchy.setColumnCount(len(display_attributes))
+        self._w.treeLeftTagHierarchy.setHeaderLabels(
+            [a["Name"] for a in display_attributes.values()]
+        )
 
         # Update items
         tags = self._api.list_tags(
@@ -556,23 +531,23 @@ class MainWindow(QtCore.QObject):
             if tags[tag_name]["HasChildren"]:
                 item.setChildIndicatorPolicy(QTreeWidgetItem.ShowIndicator)
 
-            treeWidget.addTopLevelItem(item)
+            self._w.treeLeftTagHierarchy.addTopLevelItem(item)
 
-        self._markSelectedTags()
+        self._mark_selected_tags()
 
         # If filter is a list of tags - we need to show which tags were not found
         if isinstance(filter, list):
             lower_exist = [s.lower() for s in tags.keys()]
             missing_tags = [s for s in filter if s.lower() not in lower_exist]
 
-            self._showMsgBox(
+            self._show_msg_box(
                 f"Cannot find {len(missing_tags)} tag(s): {', '.join(missing_tags)}",
                 icon=QMessageBox.Icon.Warning,
             )
 
         # Dynamic tree expansion
         @QtCore.Slot(QTreeWidgetItem)
-        def onTreeExpanded(clicked_item):
+        def on_tree_expanded(clicked_item):
             tag = clicked_item.data(1, QtCore.Qt.UserRole)
             if tag["HasChildren"]:
                 # Reload children
@@ -600,135 +575,108 @@ class MainWindow(QtCore.QObject):
 
                     clicked_item.addChild(child_item)
 
-        treeWidget.itemExpanded.connect(onTreeExpanded)
+        self._w.treeLeftTagHierarchy.itemExpanded.connect(on_tree_expanded)
 
         @QtCore.Slot()
-        def onTreeSelectionChanged():
-            selected_items = len(treeWidget.selectedItems())
+        def on_tree_selection_changed():
+            selected_items = len(self._w.treeLeftTagHierarchy.selectedItems())
             too_many_tags_msg = (
                 " (Too Many Tags to Display - Narrow Your Search)"
                 if len(tags) >= MAX_TAGS_TO_LOAD
                 else ""
             )
-            statusWidget.setText(
+            self._w.labelLeftPanelStatus.setText(
                 f"{selected_items} / {len(tags)} tags {too_many_tags_msg}"
                 if selected_items > 0
                 else f"{len(tags)} tags {too_many_tags_msg}"
             )
 
-        treeWidget.itemSelectionChanged.connect(onTreeSelectionChanged)
-        onTreeSelectionChanged()
+        self._w.treeLeftTagHierarchy.itemSelectionChanged.connect(
+            on_tree_selection_changed
+        )
+        on_tree_selection_changed()
 
-    def _refreshConnections(self, panel):
+    def _refresh_connections(self):
         """ """
-        connectionWidget = getattr(self._w, f"combo{panel}Connection")
-        connectionWidget.clear()
+        self._w.comboLeftConnection.clear()
 
         self._existing_connections = self._api.list_connections()
 
-        # TODO: Make it more generic
-        if panel == "Left":
-            for conn in [
-                conn
-                for conn in self._existing_connections
-                if conn["category"] == "historian"
-            ]:
-                connectionWidget.addItem(
-                    self._connection_title(conn["name"], conn["type"]), conn
-                )
+        for conn in [
+            conn
+            for conn in self._existing_connections
+            if conn["category"] == "historian"
+        ]:
+            self._w.comboLeftConnection.addItem(
+                self._connection_title(conn["name"], conn["type"]), conn
+            )
 
-            connectionWidget.addItem("-- Add New Connection... --", "add_new")
-        else:
-            for conn in [
-                conn
-                for conn in self._existing_connections
-                if conn["category"] != "historian"
-            ]:
-                connectionWidget.addItem(
-                    self._connection_title(conn["name"], conn["type"]), conn
-                )
-
-            connectionWidget.addItem("-- Add New Archive... --", "add_new")
+        self._w.comboLeftConnection.addItem("-- Add New Connection... --", "add_new")
 
         # Deselect last item
-        if connectionWidget.count() == 1:
-            connectionWidget.setCurrentIndex(-1)
+        if self._w.comboLeftConnection.count() == 1:
+            self._w.comboLeftConnection.setCurrentIndex(-1)
 
-    def _enableCurrentConnection(self, panel):
-        connectionsComboWidget = getattr(self._w, f"combo{panel}Connection")
-        connectButtonWidget = getattr(self._w, f"button{panel}Connect")
-
-        connectButtonWidget.hide()
-        current_conn = connectionsComboWidget.currentData()
+    def _enable_current_connection(self):
+        self._w.buttonLeftConnect.hide()
+        current_conn = self._w.comboLeftConnection.currentData()
         try:
             print(f"Enabling connection '{current_conn['name']}'...")
             self._api.enable_connection(current_conn["name"])
             conn_info = self._api.connection_info(current_conn["name"])
             current_conn["enabled"] = True
-            connectionsComboWidget.setItemData(
-                connectionsComboWidget.currentIndex(), current_conn
+            self._w.comboLeftConnection.setItemData(
+                self._w.comboLeftConnection.currentIndex(), current_conn
             )
-            self._refreshCurrentConnectionView(panel, current_conn, conn_info)
+            self._refresh_current_connection_view(current_conn, conn_info)
         except Exception as e:
-            self._refreshCurrentConnectionView(panel, current_conn)
+            self._refresh_current_connection_view(current_conn)
             mb = QMessageBox(self._w)
             mb.setIcon(QMessageBox.Icon.Information)
             mb.setWindowTitle(self._w.windowTitle())
             mb.setText(f"Error connecting to '{current_conn['name']}' - {str(e)}")
             mb.exec_()
 
-    def _refreshCurrentConnectionView(self, panel, current_conn, conn_info=None):
-        connectionLabelWidget = getattr(self._w, f"label{panel}ConnectionDetails")
-        connectButtonWidget = getattr(self._w, f"button{panel}Connect")
-        nameFilterWidget = getattr(self._w, f"combo{panel}TagFilter")
-        buttonTagsFileSelect = getattr(self._w, f"button{panel}TagsFileSelect")
-        timeFromFilterWidget = getattr(self._w, f"dateTime{panel}From")
-        timeToFilterWidget = getattr(self._w, f"dateTime{panel}To")
-        widgetTimeFilter = getattr(self._w, f"widget{panel}TimeFilter")
-        treeWidget = getattr(self._w, f"tree{panel}TagHierarchy")
-        statusWidget = getattr(self._w, f"label{panel}PanelStatus")
-
-        connectButtonWidget.hide()
-
-        connectionLabelWidget.setText("")
-        treeWidget.clear()
-        statusWidget.clear()
+    def _refresh_current_connection_view(self, current_conn, conn_info=None):
+        self._w.buttonLeftConnect.hide()
+        self._w.labelLeftConnectionDetails.setText("")
+        self._w.treeLeftTagHierarchy.clear()
+        self._w.labelLeftPanelStatus.clear()
 
         if not current_conn:
             return
 
         if not current_conn["enabled"]:
-            connectionLabelWidget.setText("Connection disabled.")
-            connectButtonWidget.show()
+            self._w.labelLeftConnectionDetails.setText("Connection disabled.")
+            self._w.buttonLeftConnect.show()
             return
 
         if conn_info is None:
             return
 
-        connectionLabelWidget.setText(conn_info["OneLiner"])
+        self._w.labelLeftConnectionDetails.setText(conn_info["OneLiner"])
 
         # - Filters configuration -
-        nameFilterWidget.clear()
+        self._w.comboLeftTagFilter.clear()
 
         # Update panel on filter change
         @QtCore.Slot(str)
-        def onNameFilterChanged(text):
-            self._refreshTagsTree(
-                panel=panel,
+        def on_name_filter_changed(text):
+            self._refresh_tags_tree(
                 filter=text,
                 conn_name=current_conn["name"],
                 display_attributes=OrderedDict(current_conn["default_attributes"]),
             )
 
-        nameFilterWidget.textActivated.connect(onNameFilterChanged)
+        self._w.comboLeftTagFilter.textActivated.connect(on_name_filter_changed)
 
         if "name" in current_conn["supported_filters"]:
-            nameFilterWidget.show()
+            self._w.comboLeftTagFilter.show()
         else:
-            nameFilterWidget.hide()
+            self._w.comboLeftTagFilter.hide()
 
         @QtCore.Slot(str)
-        def onTagsFileSelect():
+        def on_tags_file_select():
             filename, filter = QFileDialog.getOpenFileName(
                 parent=self._w,
                 caption="Select Tags File",
@@ -743,13 +691,12 @@ class MainWindow(QtCore.QObject):
                 df = pd.read_excel(filename, header=None)
                 tags_to_find = df.iloc[:, 0].tolist()
 
-                self._refreshTagsTree(
-                    panel=panel,
+                self._refresh_tags_tree(
                     filter=tags_to_find,
                     conn_name=current_conn["name"],
                     display_attributes=OrderedDict(current_conn["default_attributes"]),
                 )
-                nameFilterWidget.clear()
+                self._w.comboLeftTagFilter.clear()
 
             except Exception as e:
                 mb = QMessageBox(self._w)
@@ -758,67 +705,64 @@ class MainWindow(QtCore.QObject):
                 mb.setText(f"Error reading excel file: {str(e)}")
                 mb.exec_()
 
-        buttonTagsFileSelect.clicked.connect(onTagsFileSelect)
+        self._w.buttonLeftTagsFileSelect.clicked.connect(on_tags_file_select)
 
         if "tags_file" in current_conn["supported_filters"]:
-            buttonTagsFileSelect.show()
+            self._w.buttonLeftTagsFileSelect.show()
         else:
-            buttonTagsFileSelect.hide()
+            self._w.buttonLeftTagsFileSelect.hide()
 
         # Selection dates
         if "time" in current_conn["supported_filters"]:
             # now = QtCore.QDateTime.currentDateTime()
             end_time = QtCore.QDateTime.currentDateTimeUtc()
             start_time = end_time.addDays(-30)
-            timeFromFilterWidget.setDateTime(start_time)
-            timeToFilterWidget.setDateTime(end_time)
-            widgetTimeFilter.show()
+            self._w.dateTimeLeftFrom.setDateTime(start_time)
+            self._w.dateTimeLeftTo.setDateTime(end_time)
+            self._w.widgetLeftTimeFilter.show()
 
         else:
-            widgetTimeFilter.hide()
+            self._w.widgetLeftTimeFilter.hide()
 
         # Tag tree
-        # self._refreshTagsTree(panel=panel, filter=filter, conn_name=current_conn['name'],
+        # self._refreshTagsTree(filter=filter, conn_name=current_conn['name'],
         #                       display_attributes=OrderedDict(current_conn['default_attributes']))
 
-    def _setupPanel(self, panel):
-        connectionsComboWidget = getattr(self._w, f"combo{panel}Connection")
-        connectButtonWidget = getattr(self._w, f"button{panel}Connect")
-
+    def _setup_panel(self):
         # Connection list
-        self._refreshConnections(panel)
+        self._refresh_connections()
 
-        connectionsComboWidget.currentTextChanged.connect(
-            lambda index: self.onConnectionChange(panel)
+        self._w.comboLeftConnection.currentTextChanged.connect(
+            self.on_connection_change
         )
 
         @QtCore.Slot()
-        def onConnect():
-            self._enableCurrentConnection(panel)
+        def on_connect():
+            self._enable_current_connection()
 
-        connectButtonWidget.clicked.connect(onConnect)
+        self._w.buttonLeftConnect.clicked.connect(on_connect)
 
-        self.onConnectionChange(panel)
+        self.on_connection_change()
 
-    def _setupManipulationControls(self):
-        self._w.buttonLeftView.clicked.connect(self.onViewTags)
+    def _setup_manipulation_controls(self):
+        self._w.buttonLeftView.clicked.connect(self.on_view_tags)
         shortcut_view = QtGui.QShortcut(QtGui.QKeySequence("F3"), self._w)
-        shortcut_view.activated.connect(self.onViewTags)
+        shortcut_view.activated.connect(self.on_view_tags)
 
-        self._w.buttonAddSelectedTags.clicked.connect(self.onAddSelectedTags)
+        self._w.buttonAddSelectedTags.clicked.connect(self.on_add_selected_tags)
 
         self._w.buttonRemoveAllSelected.clicked.connect(
-            lambda: self.onRemoveSelectedTags(all=True)
+            lambda: self.on_remove_selected_tags(all=True)
         )
         self._w.buttonRemoveSelected.clicked.connect(
-            lambda: self.onRemoveSelectedTags(all=False)
+            lambda: self.on_remove_selected_tags(all=False)
         )
 
-        self._w.buttonCopy.clicked.connect(self.onCopyTags)
+        self._w.buttonCopy.clicked.connect(self.on_copy_tags)
         shortcut_copy = QtGui.QShortcut(QtGui.QKeySequence("F5"), self._w)
-        shortcut_copy.activated.connect(self.onCopyTags)
+        shortcut_copy.activated.connect(self.on_copy_tags)
 
-        def onDirectorySelect():
+        def on_directory_select():
             selected_dir = QFileDialog.getExistingDirectory(
                 self._w, "Select Archive Folder"
             )
@@ -837,7 +781,7 @@ class MainWindow(QtCore.QObject):
             if conn["category"] != "historian"
         ]:
             self._w.comboArchiveDirectory.addItem(conn["name"])
-        self._w.buttonSelectArchiveFile.clicked.connect(onDirectorySelect)
+        self._w.buttonSelectArchiveFile.clicked.connect(on_directory_select)
 
         # Refresh
         # shortcutRefresh = QtGui.QShortcut(QtGui.QKeySequence('Ctrl+r'), self._w)
@@ -848,19 +792,16 @@ class MainWindow(QtCore.QObject):
         shortcut_quit = QtGui.QShortcut(QtGui.QKeySequence("Alt+F4"), self._w)
         shortcut_quit.activated.connect(QtWidgets.QApplication.instance().quit)
 
-    def _setupMenuBar(self):
-        self._w.actionAddNewConnection.triggered.connect(
-            lambda: self.onCreateNewConnection("Left")
-        )
-        self._w.actionManageConnections.triggered.connect(self.onManageConnections)
+    def _setup_menu_bar(self):
+        self._w.actionAddNewConnection.triggered.connect(self.on_create_new_connection)
+        self._w.actionManageConnections.triggered.connect(self.on_manage_connections)
 
     def setup(self):
         self._w.setWindowTitle(f"{WINDOW_DEFAULT_TITLE} - v{__version__}")
 
-        self._setupPanel(panel="Left")
-        # self._setupPanel(panel='Right')
-        self._setupMenuBar()
-        self._setupManipulationControls()
+        self._setup_panel()
+        self._setup_menu_bar()
+        self._setup_manipulation_controls()
 
     def show(self):
         self._w.show()

@@ -17,13 +17,9 @@ if __name__ == "__main__":
 
     app = QtWidgets.QApplication(sys.argv)
 
-    agent = LocalAgent()
-    agent.init(is_service=False)
+    with LocalAgent() as agent:
+        gui = MainWindow(agent.api)
+        gui.setup()
+        gui.show()
 
-    gui = MainWindow(agent.api)
-    gui.setup()
-    gui.show()
-
-    app.exec()
-
-    agent.close()
+        app.exec()
