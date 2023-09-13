@@ -27,13 +27,13 @@ class DirectoryBrowserField(QDialog):
         dir_browser = QPushButton("...")
         dir_browser.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Minimum)
 
-        def onFolderSelect():
+        def on_folder_select():
             folder = str(
                 QFileDialog.getExistingDirectory(self, "Select Archive Folder")
             )
             self._selected_dir.setText(folder)
 
-        dir_browser.clicked.connect(onFolderSelect)
+        dir_browser.clicked.connect(on_folder_select)
         self._main_layout.addWidget(dir_browser)
 
         self.setLayout(self._main_layout)
@@ -55,11 +55,11 @@ class FileBrowserField(QDialog):
         file_browser = QPushButton("...")
         file_browser.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Minimum)
 
-        def onFileSelect():
+        def on_file_select():
             selected_file, _ = QFileDialog.getSaveFileName(self, "Select Archive File")
             self._selected_file.setText(selected_file)
 
-        file_browser.clicked.connect(onFileSelect)
+        file_browser.clicked.connect(on_file_select)
         self._main_layout.addWidget(file_browser)
 
         self.setLayout(self._main_layout)
@@ -86,7 +86,7 @@ class CreateConnectionDialog(QDialog):
         cancel_button.clicked.connect(self.reject)
 
         @QtCore.Slot(str)
-        def onMandatoryFieldChanged(val):
+        def on_mandatory_field_changed(val):
             if not val.strip():
                 submit_button.setEnabled(False)
             else:
@@ -98,7 +98,7 @@ class CreateConnectionDialog(QDialog):
         self.connection_name.setValidator(
             QtGui.QRegularExpressionValidator("[a-zA-Z0-9\_]+")  # noqa: W605
         )
-        self.connection_name.textChanged.connect(onMandatoryFieldChanged)
+        self.connection_name.textChanged.connect(on_mandatory_field_changed)
         self._main_layout.addWidget(QLabel("Connection name:"), 1, 0)
         self._main_layout.addWidget(self.connection_name, 1, 1)
 
@@ -107,17 +107,17 @@ class CreateConnectionDialog(QDialog):
             self.connection_type.addItem(f"{connector}", self._connectors[connector])
 
         @QtCore.Slot(str)
-        def onConnectionTypeChange(index):
-            _updateDynamicFields()
+        def on_connection_type_change(index):
+            _update_dynamic_fields()
 
-        self.connection_type.currentIndexChanged.connect(onConnectionTypeChange)
+        self.connection_type.currentIndexChanged.connect(on_connection_type_change)
 
         self._main_layout.addWidget(QLabel("Connection type:"), 2, 0)
         self._main_layout.addWidget(self.connection_type, 2, 1)
 
         self.dynamic_fields = {}
 
-        def _updateDynamicFields():
+        def _update_dynamic_fields():
             self.dynamic_fields = {}
 
             for row in range(10):
@@ -168,7 +168,7 @@ class CreateConnectionDialog(QDialog):
 
         self.setLayout(self._main_layout)
 
-        _updateDynamicFields()
+        _update_dynamic_fields()
 
     @property
     def values(self):
