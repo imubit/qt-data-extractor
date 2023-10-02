@@ -57,11 +57,7 @@ jobs:
 
   build-win-exe:
     needs: prepare
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: ['windows-latest']
+    runs-on: windows-latest
     outputs:
       windows-distribution: ${{ steps.windows-distribution.outputs.path }}
     steps:
@@ -90,81 +86,65 @@ jobs:
           path: dist/windows/
           retention-days: 1
 
-
-#  test:
-#    needs: prepare
-#    strategy:
-#      matrix:
-#        python:
-#        - "3.8"  # oldest Python supported by PSF
-#        - "3.11"  # newest Python that is stable
-#        platform:
-#        - ubuntu-latest
-#        - windows-latest
-#    runs-on: ${{ matrix.platform }}
+#  sign-win-exe:
+#    needs: build-win-exe
+#    runs-on: ubuntu-latest
 #    steps:
-#      - uses: actions/checkout@v3
-#      - uses: actions/setup-python@v4
-#        id: setup-python
-#        with:
-#          python-version: ${{ matrix.python }}
 #      - name: Retrieve pre-built distribution files
 #        uses: actions/download-artifact@v3
 #        with: {name: python-distribution-files, path: dist/}
-#      - name: Run tests
-#        run: >-
-#          pipx run --python '${{ steps.setup-python.outputs.python-path }}'
-#          tox --installpkg '${{ needs.prepare.outputs.wheel-distribution }}'
-#          -- -rFEx --durations 10 --color yes  # pytest args
-#      - name: Generate coverage report
-#        run: pipx run coverage lcov -o coverage.lcov
-#      - name: Upload partial coverage report
-#        uses: coverallsapp/github-action@master
+#
+#        # https://www.ssl.com/how-to/cloud-code-signing-integration-with-github-actions/
+#      - name: Sign Artifact
+#        uses: sslcom/actions-codesigner@develop
 #        with:
-#          path-to-lcov: coverage.lcov
-#          github-token: ${{ secrets.GITHUB_TOKEN }}
-#          flag-name: ${{ matrix.platform }} - py${{ matrix.python }}
-#          parallel: true
+#          command: sign
+#          username: ${{secrets.ES_USERNAME}}
+#          password: ${{secrets.ES_PASSWORD}}
+#          credential_id: ${{secrets.CREDENTIAL_ID}}
+#          # OAuth TOTP Secret (https://www.ssl.com/how-to/automate-esigner-ev-code-signing)
+#          totp_secret: ${{secrets.ES_TOTP_SECRET}}
+#          # Path of code object to be signed. (DLL, JAR, EXE, MSI files vb… )
+##          file_path: ${GITHUB_WORKSPACE}/packages/${{env.PROJECT_NAME}}.jar
+#          file_path: '${GITHUB_WORKSPACE}/dist/windows/data-extractor.exe'
+#          output_path: ${GITHUB_WORKSPACE}/dist/windows-signed
+#
+#      - name: Upload Signed Files
+#        uses: actions/upload-artifact@v2
+#        with:
+#          name: windows-signed-files
+#          path: dist/windows-signed/
+#          retention-days: 1
 
-#  finalize:
-#    needs: test
-#    runs-on: ubuntu-latest
+#  build-msi:
+#    needs: build-win-exe
+#    runs-on: windows-latest
 #    steps:
-#      - name: Finalize coverage report
-#        uses: coverallsapp/github-action@master
+#      - name: Install go-msi
+#        run: choco install -y "go-msi"
+#
+#      - name: Retrieve pre-built distribution files
+#        uses: actions/download-artifact@v3
+#        with: {name: python-distribution-files, path: dist/}
+#
+#      - name: Build Windows Installer MSI from exe file
+#        uses: AliceOh/CreateWindowsInstaller@1.0.0
 #        with:
-#          github-token: ${{ secrets.GITHUB_TOKEN }}
-#          parallel-finished: true
-
-  build-msi:
-    needs: build-win-exe
-    runs-on: windows-latest
-    steps:
-      - name: Install go-msi
-        run: choco install -y "go-msi"
-
-      - name: Retrieve pre-built distribution files
-        uses: actions/download-artifact@v3
-        with: {name: python-distribution-files, path: dist/}
-
-      - name: Build Windows Installer MSI from exe file
-        uses: AliceOh/CreateWindowsInstaller@1.0.0
-        with:
-          exefile: 'dist/windows/data-extractor.exe'
-
-  publish-msi:
-    needs: build-msi
-    runs-on: windows-latest
-    steps:
-      - name: Upload MSI for Windows to release page
-        uses: "marvinpinto/action-automatic-releases@latest"
-        with:
-          repo_token: "${{ secrets.GITHUB_TOKEN }}"
-          automatic_release_tag: "test"
-          prerelease: true
-          title: "Windows Development Build"
-          files: |
-            data-extractor.exe.msi
+#          exefile: 'dist/windows/data-extractor.exe'
+#
+#  publish-msi:
+#    needs: build-msi
+#    runs-on: windows-latest
+#    steps:
+#      - name: Upload MSI for Windows to release page
+#        uses: "marvinpinto/action-automatic-releases@latest"
+#        with:
+#          repo_token: "${{ secrets.GITHUB_TOKEN }}"
+#          automatic_release_tag: "test"
+#          prerelease: true
+#          title: "Windows Development Build"
+#          files: |
+#            data-extractor.exe.msi
 
 
 
