@@ -11,7 +11,7 @@ __copyright__ = "Imubit"
 __license__ = "LGPLv3"
 
 
-if __name__ == "__main__":
+def run():
     QtCore.QCoreApplication.setAttribute(QtCore.Qt.AA_ShareOpenGLContexts)
     os.environ["QT_LOGGING_RULES"] = "*.debug=false;qt.pysideplugin=false"
 
@@ -23,3 +23,7 @@ if __name__ == "__main__":
         gui.show()
 
         app.exec()
+
+
+if __name__ == "__main__":
+    run()

@@ -7,9 +7,6 @@
 [![Twitter](https://img.shields.io/twitter/url/http/shields.io.svg?style=social&label=Twitter)](https://twitter.com/qt-data-extractor)
 -->
 
-[![Coveralls](https://img.shields.io/coveralls/github/<USER>/qt-data-extractor/main.svg)](https://coveralls.io/r/<USER>/qt-data-extractor)
-[![Built Status](https://api.cirrus-ci.com/github/<USER>/qt-data-extractor.svg?branch=main)](https://cirrus-ci.com/github/<USER>/qt-data-extractor)
-[![PyPI-Server](https://img.shields.io/pypi/v/qt-data-extractor.svg)](https://pypi.org/project/qt-data-extractor/)
 [![Project generated with PyScaffold](https://img.shields.io/badge/-PyScaffold-005CA0?logo=pyscaffold)](https://pyscaffold.org/)
 
 # qt-data-extractor
@@ -29,3 +26,11 @@ The application is used to browse and select tags on the target historian or DCS
 * Select `Save Directory` in which your archive will be populated.
 * Click `Extract` and confirm your selection.
 * Wait until extraction is finished.
+
+## Development
+
+### Building Windows Executable
+
+```bash
+pipx run tox -e winexe
+```
