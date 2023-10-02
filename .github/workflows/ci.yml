@@ -69,10 +69,7 @@ jobs:
         with: {fetch-depth: 0}  # deep clone for setuptools-scm
       - uses: actions/setup-python@v4
         id: setup-python
-        with: {python-version: "3.8"}
-
-#      - name: Install pyinstaller dependencies
-#        run: pip install pyinstaller
+        with: {python-version: "3.9"}
 
       - name: Retrieve pre-built distribution files
         uses: actions/download-artifact@v3
@@ -138,6 +135,38 @@ jobs:
 #        with:
 #          github-token: ${{ secrets.GITHUB_TOKEN }}
 #          parallel-finished: true
+
+  build-msi:
+    needs: build-win-exe
+    runs-on: windows-latest
+    steps:
+      - name: Install go-msi
+        run: choco install -y "go-msi"
+
+      - name: Retrieve pre-built distribution files
+        uses: actions/download-artifact@v3
+        with: {name: python-distribution-files, path: dist/}
+
+      - name: Build Windows Installer MSI from exe file
+        uses: AliceOh/CreateWindowsInstaller@1.0.0
+        with:
+          exefile: 'dist/windows/data-extractor.exe'
+
+  publish-msi:
+    needs: build-msi
+    runs-on: windows-latest
+    steps:
+      - name: Upload MSI for Windows to release page
+        uses: "marvinpinto/action-automatic-releases@latest"
+        with:
+          repo_token: "${{ secrets.GITHUB_TOKEN }}"
+          automatic_release_tag: "test"
+          prerelease: true
+          title: "Windows Development Build"
+          files: |
+            data-extractor.exe.msi
+
+
 
   publish:
 #    needs: finalize
