@@ -71,24 +71,14 @@ jobs:
         id: setup-python
         with: {python-version: "3.8"}
 
-      - name: Install pyinstaller dependencies
-        run: pip install pyinstaller
+#      - name: Install pyinstaller dependencies
+#        run: pip install pyinstaller
 
       - name: Retrieve pre-built distribution files
         uses: actions/download-artifact@v3
         with: {name: python-distribution-files, path: dist/}
-      - name: Install wheel
-        run: >-
-          pipx run --python '${{ steps.setup-python.outputs.python-path }}'
-          tox --installpkg '${{ needs.prepare.outputs.wheel-distribution }}'
-
-      - name: Run pyinstaller
-        run: >-
-          pyinstaller --distpath dist/windows --workpath build
-          --hiddenimport win32timezone --hiddenimport data_agent  -n data-extractor -F "src/qt_data_extractor/main.py"
-          --add-data "src/qt_data_extractor/design/*.ui;design" --additional-hooks-dir "src/qt_data_extractor/hooks"
-          --icon=static/logo-256.ico --windowed
-
+      - name: Build Windows executable
+        run: pipx run tox -e winexe
 
       - name: Record the path of windows distribution
         id: windows-distribution

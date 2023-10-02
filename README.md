@@ -26,3 +26,11 @@ The application is used to browse and select tags on the target historian or DCS
 * Select `Save Directory` in which your archive will be populated.
 * Click `Extract` and confirm your selection.
 * Wait until extraction is finished.
+
+## Development
+
+### Building Windows Executable
+
+```bash
+pipx run tox -e winexe
+```
