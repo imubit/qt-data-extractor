@@ -81,20 +81,6 @@ class MainWindow(QtCore.QObject):
     def _connection_title(conn_name, conn_type):
         return f"{conn_name} ({conn_type})"
 
-    def _get_panel_data(self):
-        conn = self._w.comboLeftConnection.currentData()
-        items = self._w.treeLeftTagHierarchy.selectedItems()
-
-        # for i in items:
-        #     print(i.data(0, QtCore.Qt.UserRole), ':::', i.parent().data(0, QtCore.Qt.UserRole))
-
-        tags = {
-            i.data(0, QtCore.Qt.UserRole): i.data(1, QtCore.Qt.UserRole) for i in items
-        }
-        # print(conn)
-
-        return conn, tags
-
     def _get_selected_tags(self):
         return [
             self._w.treeSelectedTags.topLevelItem(i).data(0, QtCore.Qt.UserRole)
@@ -216,8 +202,21 @@ class MainWindow(QtCore.QObject):
             self._dialogManageConnections.buttonBox.removeButton(delete_button)
 
     @QtCore.Slot()
-    def on_view_tags(self):
-        source_conn, source_tags = self._get_panel_data()
+    def on_view_tags(self, left=True):
+        source_conn = self._w.comboLeftConnection.currentData()
+
+        items = (
+            self._w.treeLeftTagHierarchy.selectedItems()
+            if left
+            else self._w.treeSelectedTags.selectedItems()
+        )
+
+        # for i in items:
+        #     print(i.data(0, QtCore.Qt.UserRole), ':::', i.parent().data(0, QtCore.Qt.UserRole))
+
+        source_tags = {
+            i.data(0, QtCore.Qt.UserRole): i.data(1, QtCore.Qt.UserRole) for i in items
+        }
 
         if not source_tags:
             self._show_msg_box("No tags selected!")
@@ -745,9 +744,10 @@ class MainWindow(QtCore.QObject):
         self.on_connection_change()
 
     def _setup_manipulation_controls(self):
-        self._w.buttonLeftView.clicked.connect(self.on_view_tags)
-        shortcut_view = QtGui.QShortcut(QtGui.QKeySequence("F3"), self._w)
-        shortcut_view.activated.connect(self.on_view_tags)
+        self._w.buttonLeftView.clicked.connect(lambda: self.on_view_tags(left=True))
+        # shortcut_view = QtGui.QShortcut(QtGui.QKeySequence("F3"), self._w)
+        # shortcut_view.activated.connect(self.on_view_tags)
+        self._w.buttonRightView.clicked.connect(lambda: self.on_view_tags(left=False))
 
         self._w.buttonAddSelectedTags.clicked.connect(self.on_add_selected_tags)
 
