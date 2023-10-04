@@ -1,4 +1,3 @@
-# Custom tree widget - https://gist.github.com/JokerMartini/c4e724c1ae38b5c2f144
 import logging
 import os
 import sys
@@ -29,6 +28,7 @@ log = logging.getLogger(__name__)
 WINDOW_DEFAULT_TITLE = "Imubit Data Exporter"
 SHORT_VERSION = f'{__version__.split(".")[0]}.{__version__.split(".")[1]}'
 MAX_TAGS_TO_LOAD = 100
+TAGS_FILTER_DEFAULT_PLACEHOLDER = "Search tags by filter..."
 
 bundle_dir = getattr(sys, "_MEIPASS", os.path.abspath(os.path.dirname(__file__)))
 
@@ -636,6 +636,20 @@ class MainWindow(QtCore.QObject):
             mb.setText(f"Error connecting to '{current_conn['name']}' - {str(e)}")
             mb.exec_()
 
+    class FilterWidgetEventInspector(QtCore.QObject):
+        def eventFilter(self, obj, event):
+            if event.type() == QtCore.QEvent.FocusOut:
+                if obj.currentText().strip() == "":
+                    obj.setCurrentText(TAGS_FILTER_DEFAULT_PLACEHOLDER)
+
+            elif event.type() == QtCore.QEvent.FocusIn:
+                if obj.currentText().strip() == TAGS_FILTER_DEFAULT_PLACEHOLDER:
+                    obj.setCurrentText("")
+
+            return QtCore.QObject.eventFilter(self, obj, event)
+
+    _filterWidgetEventInspector = FilterWidgetEventInspector()
+
     def _refresh_current_connection_view(self, current_conn, conn_info=None):
         self._w.buttonLeftConnect.hide()
         self._w.labelLeftConnectionDetails.setText("")
@@ -656,7 +670,7 @@ class MainWindow(QtCore.QObject):
         self._w.labelLeftConnectionDetails.setText(conn_info["OneLiner"])
 
         # - Filters configuration -
-        self._w.comboLeftTagFilter.clear()
+        self._w.comboLeftTagFilter.setCurrentText(TAGS_FILTER_DEFAULT_PLACEHOLDER)
 
         # Update panel on filter change
         @QtCore.Slot(str)
@@ -668,6 +682,7 @@ class MainWindow(QtCore.QObject):
             )
 
         self._w.comboLeftTagFilter.textActivated.connect(on_name_filter_changed)
+        self._w.comboLeftTagFilter.installEventFilter(self._filterWidgetEventInspector)
 
         if "name" in current_conn["supported_filters"]:
             self._w.comboLeftTagFilter.show()
