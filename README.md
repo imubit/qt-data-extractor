@@ -9,13 +9,16 @@
 
 [![Project generated with PyScaffold](https://img.shields.io/badge/-PyScaffold-005CA0?logo=pyscaffold)](https://pyscaffold.org/)
 
-# qt-data-extractor
+# Industrial Data Extractor
 
-> Extract data from industrial historians.
+Industrial Data Extractor is an open-source Windows application to extract process data from industrial systems
+and historians.
 
-Data Extractor is a GUI for `data-agent` to extract data from external system (usually industrial historians).
+The following systems are currently supported:
 
-The application is used to browse and select tags on the target historian or DCS and extract period data into zipped CSVs.
+* Osisoft PI
+
+It supports browsing and selecting tags on the target system and extract periods of data into zipped CSVs.
 
 ## Getting Started
 
@@ -28,6 +31,18 @@ The application is used to browse and select tags on the target historian or DCS
 * Wait until extraction is finished.
 
 ## Development
+
+### Python Install
+
+```python
+pip install qt-data-extractor
+```
+
+### Running under CLI
+
+```
+PS C:\> qt-data-extractor
+```
 
 ### Building Windows Executable
 
