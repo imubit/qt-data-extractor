@@ -28,6 +28,7 @@ log = logging.getLogger(__name__)
 WINDOW_DEFAULT_TITLE = "Imubit Data Exporter"
 SHORT_VERSION = f'{__version__.split(".")[0]}.{__version__.split(".")[1]}'
 MAX_TAGS_TO_LOAD = 100
+ENABLE_EDITING_CONFIG_BEFORE_EXTRACTION = False
 TAGS_FILTER_DEFAULT_PLACEHOLDER = "Search tags by filter..."
 
 bundle_dir = getattr(sys, "_MEIPASS", os.path.abspath(os.path.dirname(__file__)))
@@ -329,9 +330,18 @@ class MainWindow(QtCore.QObject):
                 state == 0
             )
         )
+        self._dialogCopyPrompt.checkboxAttributesOnly.setCheckState(
+            self._w.checkboxExtractAttributesOnly.checkState()
+        )
 
-        doCopyPrompt = self._dialogCopyPrompt.exec_()
-        if doCopyPrompt != 1:
+        if not ENABLE_EDITING_CONFIG_BEFORE_EXTRACTION:
+            # Put everything in readonly mode
+            self._dialogCopyPrompt.comboCopyTarget.setEnabled(False)
+            self._dialogCopyPrompt.groupboxDataSettings.setEnabled(False)
+            self._dialogCopyPrompt.checkboxAttributesOnly.setEnabled(False)
+
+        do_copy_prompt = self._dialogCopyPrompt.exec_()
+        if do_copy_prompt != 1:
             return
 
         try:
