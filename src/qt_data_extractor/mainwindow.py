@@ -1,4 +1,3 @@
-# Custom tree widget - https://gist.github.com/JokerMartini/c4e724c1ae38b5c2f144
 import logging
 import os
 import sys
@@ -29,6 +28,8 @@ log = logging.getLogger(__name__)
 WINDOW_DEFAULT_TITLE = "Imubit Data Exporter"
 SHORT_VERSION = f'{__version__.split(".")[0]}.{__version__.split(".")[1]}'
 MAX_TAGS_TO_LOAD = 100
+ENABLE_EDITING_CONFIG_BEFORE_EXTRACTION = False
+TAGS_FILTER_DEFAULT_PLACEHOLDER = "Search tags by filter..."
 
 bundle_dir = getattr(sys, "_MEIPASS", os.path.abspath(os.path.dirname(__file__)))
 
@@ -80,20 +81,6 @@ class MainWindow(QtCore.QObject):
     @staticmethod
     def _connection_title(conn_name, conn_type):
         return f"{conn_name} ({conn_type})"
-
-    def _get_panel_data(self):
-        conn = self._w.comboLeftConnection.currentData()
-        items = self._w.treeLeftTagHierarchy.selectedItems()
-
-        # for i in items:
-        #     print(i.data(0, QtCore.Qt.UserRole), ':::', i.parent().data(0, QtCore.Qt.UserRole))
-
-        tags = {
-            i.data(0, QtCore.Qt.UserRole): i.data(1, QtCore.Qt.UserRole) for i in items
-        }
-        # print(conn)
-
-        return conn, tags
 
     def _get_selected_tags(self):
         return [
@@ -216,8 +203,21 @@ class MainWindow(QtCore.QObject):
             self._dialogManageConnections.buttonBox.removeButton(delete_button)
 
     @QtCore.Slot()
-    def on_view_tags(self):
-        source_conn, source_tags = self._get_panel_data()
+    def on_view_tags(self, left=True):
+        source_conn = self._w.comboLeftConnection.currentData()
+
+        items = (
+            self._w.treeLeftTagHierarchy.selectedItems()
+            if left
+            else self._w.treeSelectedTags.selectedItems()
+        )
+
+        # for i in items:
+        #     print(i.data(0, QtCore.Qt.UserRole), ':::', i.parent().data(0, QtCore.Qt.UserRole))
+
+        source_tags = {
+            i.data(0, QtCore.Qt.UserRole): i.data(1, QtCore.Qt.UserRole) for i in items
+        }
 
         if not source_tags:
             self._show_msg_box("No tags selected!")
@@ -330,9 +330,18 @@ class MainWindow(QtCore.QObject):
                 state == 0
             )
         )
+        self._dialogCopyPrompt.checkboxAttributesOnly.setCheckState(
+            self._w.checkboxExtractAttributesOnly.checkState()
+        )
 
-        doCopyPrompt = self._dialogCopyPrompt.exec_()
-        if doCopyPrompt != 1:
+        if not ENABLE_EDITING_CONFIG_BEFORE_EXTRACTION:
+            # Put everything in readonly mode
+            self._dialogCopyPrompt.comboCopyTarget.setEnabled(False)
+            self._dialogCopyPrompt.groupboxDataSettings.setEnabled(False)
+            self._dialogCopyPrompt.checkboxAttributesOnly.setEnabled(False)
+
+        do_copy_prompt = self._dialogCopyPrompt.exec_()
+        if do_copy_prompt != 1:
             return
 
         try:
@@ -637,6 +646,20 @@ class MainWindow(QtCore.QObject):
             mb.setText(f"Error connecting to '{current_conn['name']}' - {str(e)}")
             mb.exec_()
 
+    class FilterWidgetEventInspector(QtCore.QObject):
+        def eventFilter(self, obj, event):
+            if event.type() == QtCore.QEvent.FocusOut:
+                if obj.currentText().strip() == "":
+                    obj.setCurrentText(TAGS_FILTER_DEFAULT_PLACEHOLDER)
+
+            elif event.type() == QtCore.QEvent.FocusIn:
+                if obj.currentText().strip() == TAGS_FILTER_DEFAULT_PLACEHOLDER:
+                    obj.setCurrentText("")
+
+            return QtCore.QObject.eventFilter(self, obj, event)
+
+    _filterWidgetEventInspector = FilterWidgetEventInspector()
+
     def _refresh_current_connection_view(self, current_conn, conn_info=None):
         self._w.buttonLeftConnect.hide()
         self._w.labelLeftConnectionDetails.setText("")
@@ -657,7 +680,7 @@ class MainWindow(QtCore.QObject):
         self._w.labelLeftConnectionDetails.setText(conn_info["OneLiner"])
 
         # - Filters configuration -
-        self._w.comboLeftTagFilter.clear()
+        self._w.comboLeftTagFilter.setCurrentText(TAGS_FILTER_DEFAULT_PLACEHOLDER)
 
         # Update panel on filter change
         @QtCore.Slot(str)
@@ -669,6 +692,7 @@ class MainWindow(QtCore.QObject):
             )
 
         self._w.comboLeftTagFilter.textActivated.connect(on_name_filter_changed)
+        self._w.comboLeftTagFilter.installEventFilter(self._filterWidgetEventInspector)
 
         if "name" in current_conn["supported_filters"]:
             self._w.comboLeftTagFilter.show()
@@ -745,9 +769,10 @@ class MainWindow(QtCore.QObject):
         self.on_connection_change()
 
     def _setup_manipulation_controls(self):
-        self._w.buttonLeftView.clicked.connect(self.on_view_tags)
-        shortcut_view = QtGui.QShortcut(QtGui.QKeySequence("F3"), self._w)
-        shortcut_view.activated.connect(self.on_view_tags)
+        self._w.buttonLeftView.clicked.connect(lambda: self.on_view_tags(left=True))
+        # shortcut_view = QtGui.QShortcut(QtGui.QKeySequence("F3"), self._w)
+        # shortcut_view.activated.connect(self.on_view_tags)
+        self._w.buttonRightView.clicked.connect(lambda: self.on_view_tags(left=False))
 
         self._w.buttonAddSelectedTags.clicked.connect(self.on_add_selected_tags)
 
