@@ -51,6 +51,29 @@ jobs:
           path: dist/
           retention-days: 1
 
+  publish-python-package:
+    needs: prepare
+    if: ${{ github.event_name == 'push' && contains(github.ref, 'refs/tags/') }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with: {python-version: "3.11"}
+      - name: Retrieve pre-built distribution files
+        uses: actions/download-artifact@v3
+        with: {name: python-distribution-files, path: dist/}
+      - name: Publish Package
+        env:
+          # TODO: Set your PYPI_TOKEN as a secret using GitHub UI
+          # - https://pypi.org/help/#apitoken
+          # - https://docs.github.com/en/actions/security-guides/encrypted-secrets
+          TWINE_REPOSITORY: pypi
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
+        run: pipx run tox -e publish
+
   build-win-exe:
     needs: prepare
     runs-on: windows-latest
@@ -82,70 +105,112 @@ jobs:
           path: dist/windows/
           retention-days: 1
 
-#  sign-win-exe-sandbox:
-#    needs: build-win-exe
-#    if: ${{ github.event_name == 'push' && contains(github.ref, 'refs/tags/') }}
-#    runs-on: ubuntu-latest
-#    steps:
-#      - name: Retrieve pre-built Windows distribution files
-#        uses: actions/download-artifact@v3
-#        with: {name: windows-distribution-files, path: dist/windows/}
-#
-#        # https://www.ssl.com/how-to/cloud-code-signing-integration-with-github-actions/
-#      - name: Sign Artifact
-#        uses: sslcom/actions-codesigner@develop
-#        with:
-#          command: sign
-#          username: ${{secrets.ES_USERNAME_SANDBOX}}
-#          password: ${{secrets.ES_PASSWORD_SANDBOX}}
-#          credential_id: ${{secrets.ES_CREDENTIAL_ID}}
-#          # OAuth TOTP Secret (https://www.ssl.com/how-to/automate-esigner-ev-code-signing)
-#          totp_secret: ${{secrets.ES_TOTP_SECRET}}
-#          # Path of code object to be signed. (DLL, JAR, EXE, MSI files vb… )
-##          file_path: ${GITHUB_WORKSPACE}/packages/${{env.PROJECT_NAME}}.jar
-#          file_path: '${GITHUB_WORKSPACE}/dist/windows/data-extractor.exe'
-#          output_path: ${GITHUB_WORKSPACE}/dist/windows-signed
-#
-#      - name: Upload Signed Files
-#        uses: actions/upload-artifact@v2
-#        with:
-#          name: windows-signed-files
-#          path: dist/windows-signed-sandbox/
-#          retention-days: 1
+  sign-win-exe:
+    needs: build-win-exe
+    runs-on: ubuntu-latest
+    steps:
+      - name: Retrieve pre-built Windows distribution files
+        uses: actions/download-artifact@v3
+        with: {name: windows-distribution-files, path: dist/windows/}
 
-#  build-msi:
-#    needs: build-win-exe
-#    runs-on: windows-latest
-#    steps:
-#      - name: Install go-msi
-#        run: choco install -y "go-msi"
-#
-#      - name: Retrieve pre-built distribution files
-#        uses: actions/download-artifact@v3
-#        with: {name: python-distribution-files, path: dist/}
-#
-#      - name: Build Windows Installer MSI from exe file
-#        uses: AliceOh/CreateWindowsInstaller@1.0.0
-#        with:
-#          exefile: 'dist/windows/data-extractor.exe'
-#
-#  publish-msi:
-#    needs: build-msi
-#    runs-on: windows-latest
-#    steps:
-#      - name: Upload MSI for Windows to release page
-#        uses: "marvinpinto/action-automatic-releases@latest"
-#        with:
-#          repo_token: "${{ secrets.GITHUB_TOKEN }}"
-#          automatic_release_tag: "test"
-#          prerelease: true
-#          title: "Windows Development Build"
-#          files: |
-#            data-extractor.exe.msi
+      - name: Prepare output directory
+        run: mkdir -p dist/windows-signed
+
+        # https://www.ssl.com/how-to/cloud-code-signing-integration-with-github-actions/
+      - name: Sign Artifact
+        uses: sslcom/actions-codesigner@develop
+        with:
+          command: sign
+
+          # If we push a new tag - we use real creds, otherwise sandbox
+          username: ${{ github.event_name == 'push' && contains(github.ref, 'refs/tags/') && secrets.ES_USERNAME || secrets.ES_USERNAME_SANDBOX }}
+          password: ${{ github.event_name == 'push' && contains(github.ref, 'refs/tags/') && secrets.ES_PASSWORD || secrets.ES_PASSWORD_SANDBOX }}
+#          credential_id: ${{  github.event_name == 'push' && contains(github.ref, 'refs/tags/') && secrets.ES_CREDENTIAL_ID || secrets.ES_CREDENTIAL_ID_SANDBOX }}
+          # OAuth TOTP Secret (https://www.ssl.com/how-to/automate-esigner-ev-code-signing)
+          totp_secret: ${{ github.event_name == 'push' && contains(github.ref, 'refs/tags/') && secrets.ES_TOTP_SECRET || secrets.ES_TOTP_SECRET_SANDBOX}}
+          environment_name: ${{ github.event_name == 'push' && contains(github.ref, 'refs/tags/') && 'PROD' || 'TEST' }}
+          # Path of code object to be signed. (DLL, JAR, EXE, MSI files vb… )
+          file_path: '${GITHUB_WORKSPACE}/dist/windows/data-extractor.exe'
+          output_path: dist/windows-signed
+
+      - name: Upload Signed Files
+        uses: actions/upload-artifact@v3
+        with:
+          name: windows-signed-files
+          path: dist/windows-signed/
+          retention-days: 1
+
+  # Ref - https://github.com/aserto-dev/topaz/actions/runs/3689572963/workflow
+  build-msi-installer:
+    needs: sign-win-exe
+    runs-on: windows-latest
+    steps:
+      - name: Install go-msi
+        run: choco install -y "go-msi"
+      - name: Prepare PATH
+        shell: bash
+        run: |
+          echo "$WIX\\bin" >> $GITHUB_PATH
+          echo "C:\\Program Files\\go-msi" >> $GITHUB_PATH
+
+      - uses: actions/checkout@v3
+        with: {fetch-depth: 0}  # deep clone for setuptools-scm
+      - name: Retrieve pre-built distribution files
+        uses: actions/download-artifact@v3
+        with: {name: windows-signed-files, path: dist/windows-signed/}
+
+      - name: Build Windows Installer MSI from exe file
+        shell: bash
+        env:
+          MSI_VERSION: ${{ github.event_name == 'push' && contains(github.ref, 'refs/tags/') && github.ref_name || '0.0.1' }}
+        run: |
+          go-msi make --arch amd64 --msi "dist/windows-installer/data-extractor-installer.msi" --out "$PWD/build" --version $MSI_VERSION
+
+      - name: Store the installer files for use in other stages
+        uses: actions/upload-artifact@v3
+        with:
+          name: windows-installer-files
+          path: dist/windows-installer/
+          retention-days: 1
+
+  sign-msi-installer:
+    needs: build-msi-installer
+    runs-on: ubuntu-latest
+    steps:
+      - name: Retrieve pre-built Windows installer files
+        uses: actions/download-artifact@v3
+        with: {name: windows-installer-files, path: dist/windows-installer/}
+      - name: Retrieve previously signed files
+        uses: actions/download-artifact@v3
+        with: {name: windows-signed-files, path: dist/windows-signed/}
+
+        # https://www.ssl.com/how-to/cloud-code-signing-integration-with-github-actions/
+      - name: Sign Artifact
+        uses: sslcom/actions-codesigner@develop
+        with:
+          command: sign
+
+          # If we push a new tag - we use real creds, otherwise sandbox
+          username: ${{ github.event_name == 'push' && contains(github.ref, 'refs/tags/') && secrets.ES_USERNAME || secrets.ES_USERNAME_SANDBOX }}
+          password: ${{ github.event_name == 'push' && contains(github.ref, 'refs/tags/') && secrets.ES_PASSWORD || secrets.ES_PASSWORD_SANDBOX }}
+#          credential_id: ${{  github.event_name == 'push' && contains(github.ref, 'refs/tags/') && secrets.ES_CREDENTIAL_ID || secrets.ES_CREDENTIAL_ID_SANDBOX }}
+          # OAuth TOTP Secret (https://www.ssl.com/how-to/automate-esigner-ev-code-signing)
+          totp_secret: ${{ github.event_name == 'push' && contains(github.ref, 'refs/tags/') && secrets.ES_TOTP_SECRET || secrets.ES_TOTP_SECRET_SANDBOX }}
+          environment_name: ${{ github.event_name == 'push' && contains(github.ref, 'refs/tags/') && 'PROD' || 'TEST' }}
+          # Path of code object to be signed. (DLL, JAR, EXE, MSI files vb… )
+          file_path: '${GITHUB_WORKSPACE}/dist/windows-installer/data-extractor-installer.msi'
+          output_path: dist/windows-signed
+
+      - name: Upload Signed Files
+        uses: actions/upload-artifact@v3
+        with:
+          name: windows-signed-files
+          path: dist/windows-signed/
+          retention-days: 1
 
 
   create-pre-release:
-    needs: build-win-exe
+    needs: sign-msi-installer
     if: ${{ github.event_name == 'push' && contains(github.ref, 'refs/pull/') }}
     runs-on: ubuntu-latest
     permissions:
@@ -153,14 +218,14 @@ jobs:
     steps:
       - name: Retrieve pre-built distribution files
         uses: actions/download-artifact@v3
-        with: {name: windows-distribution-files, path: dist/windows/}
+        with: {name: windows-signed-files, path: dist/windows-signed/}
       - name: Create Release
         uses: ncipollo/release-action@v1
 #        env:
 #          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, you do not need to create your own token
         with:
           name: Release ${{ github.ref }}
-          artifacts: "dist/windows/*.exe"
+          artifacts: "dist/windows-signed/*.*"
 #          bodyFile: "body.md"
           commit: main
           tag: ${{ github.ref }}
@@ -170,7 +235,7 @@ jobs:
           generateReleaseNotes: true
 
   create-release:
-    needs: build-win-exe
+    needs: sign-msi-installer
     if: ${{ github.event_name == 'push' && contains(github.ref, 'refs/tags/') }}
     runs-on: ubuntu-latest
     permissions:
@@ -182,37 +247,11 @@ jobs:
       - name: Create Release
         uses: ncipollo/release-action@v1
         with:
-          name: Release ${{ github.ref }}
-          artifacts: "dist/windows/*.exe"
+          name: Version ${{ github.ref_name }}
+          artifacts: "dist/windows-signed/*.*"
           commit: main
           tag: ${{ github.ref }}
           draft: false
           prerelease: false
           omitBody: true
           generateReleaseNotes: true
-
-
-
-  publish:
-#    needs: finalize
-    needs: prepare
-    if: ${{ github.event_name == 'push' && contains(github.ref, 'refs/tags/') }}
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
-        with: {python-version: "3.11"}
-      - name: Retrieve pre-built distribution files
-        uses: actions/download-artifact@v3
-        with: {name: python-distribution-files, path: dist/}
-      - name: Publish Package
-        env:
-          # TODO: Set your PYPI_TOKEN as a secret using GitHub UI
-          # - https://pypi.org/help/#apitoken
-          # - https://docs.github.com/en/actions/security-guides/encrypted-secrets
-          TWINE_REPOSITORY: pypi
-          TWINE_USERNAME: __token__
-          TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
-        run: pipx run tox -e publish
