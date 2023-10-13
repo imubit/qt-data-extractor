@@ -25,7 +25,7 @@ from qt_data_extractor.worker_thread import Worker
 
 log = logging.getLogger(__name__)
 
-WINDOW_DEFAULT_TITLE = "Imubit Data Exporter"
+WINDOW_DEFAULT_TITLE = "Imubit Data Extractor"
 SHORT_VERSION = f'{__version__.split(".")[0]}.{__version__.split(".")[1]}'
 MAX_TAGS_TO_LOAD = 100
 ENABLE_EDITING_CONFIG_BEFORE_EXTRACTION = False

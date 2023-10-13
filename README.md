@@ -7,6 +7,7 @@
 [![Twitter](https://img.shields.io/twitter/url/http/shields.io.svg?style=social&label=Twitter)](https://twitter.com/qt-data-extractor)
 -->
 
+[![PyPI-Server](https://img.shields.io/pypi/v/qt-data-extractor.svg)](https://pypi.org/project/qt-data-extractor/)
 [![Project generated with PyScaffold](https://img.shields.io/badge/-PyScaffold-005CA0?logo=pyscaffold)](https://pyscaffold.org/)
 
 # Industrial Data Extractor
@@ -16,7 +17,7 @@ and historians.
 
 The following systems are currently supported:
 
-* Osisoft PI
+* [Osisoft PI](https://github.com/imubit/data-agent-osisoft-pi)
 
 It supports browsing and selecting tags on the target system and extract periods of data into zipped CSVs.
 
