@@ -1,0 +1,44 @@
+{
+  "product": "Imubit Data Extractor",
+  "company": "Imubit Inc.",
+  "license": "LICENSE.txt",
+  "upgrade-code": "7278f47a-a6db-4a0e-a78a-8a52699ba7ef",
+  "files": {
+    "guid": "f071f484-b77f-4762-bff4-f935489f5faa",
+    "items": [
+      "dist/windows-signed/data-extractor.exe"
+    ]
+  },
+  "env": {
+    "guid": "e9cddbed-0afa-4e66-97aa-23d8e5a79f4d",
+    "vars": [
+      {
+        "name": "PATH",
+        "value": "[INSTALLDIR]",
+        "permanent": "yes",
+        "system": "no",
+        "action": "set",
+        "part": "last"
+      }
+    ]
+  },
+  "shortcuts": {
+    "guid": "a957238a-445e-4311-9c58-84485afc8862",
+    "items": [
+      {
+        "name": "Imubit Data Extractor",
+        "description": "Industrial historians data extractor",
+        "target": "[INSTALLDIR]\\data-extractor.exe",
+        "wdir": "INSTALLDIR",
+        "arguments": "",
+        "icon": ""
+      }
+    ]
+  },
+  "choco": {
+    "description": "Imubit Data Extractor",
+    "project-url": "https://github.com/imubit/qt-data-extractor/",
+    "tags": "data-extractor",
+    "license-url": "https://opensource.org/license/lgpl-3-0/"
+  }
+}

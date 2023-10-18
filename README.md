@@ -21,6 +21,13 @@ The following systems are currently supported:
 
 It supports browsing and selecting tags on the target system and extract periods of data into zipped CSVs.
 
+## Installation
+
+Please use https://github.com/imubit/qt-data-extractor/releases to download the latest version of the extractor.
+
+If you would like to extract data from Osisoft PI historian (which is the only one supported at this point). Please
+make sure you have [PI SDK](https://techsupport.osisoft.com/Products/PI-System-Access/PI-SDK/Overview) and AF SDK installed and configured on your workstation.
+
 ## Getting Started
 
 * Configure the target historian using `Server` drop down.
@@ -49,4 +56,21 @@ PS C:\> qt-data-extractor
 
 ```bash
 pipx run tox -e winexe
+```
+
+### Building MSI Installer
+
+Install environment
+
+```
+Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
+choco install -y go-msi
+
+
+```
+
+Build MSI
+
+```
+go-msi make --msi dist\windows-msi\ --version 0.1.1
 ```
