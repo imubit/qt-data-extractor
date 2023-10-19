@@ -125,7 +125,7 @@ jobs:
           # If we push a new tag - we use real creds, otherwise sandbox
           username: ${{ github.event_name == 'push' && contains(github.ref, 'refs/tags/') && secrets.ES_USERNAME || secrets.ES_USERNAME_SANDBOX }}
           password: ${{ github.event_name == 'push' && contains(github.ref, 'refs/tags/') && secrets.ES_PASSWORD || secrets.ES_PASSWORD_SANDBOX }}
-#          credential_id: ${{  github.event_name == 'push' && contains(github.ref, 'refs/tags/') && secrets.ES_CREDENTIAL_ID || secrets.ES_CREDENTIAL_ID_SANDBOX }}
+          credential_id: ${{  github.event_name == 'push' && contains(github.ref, 'refs/tags/') && secrets.ES_CREDENTIAL_ID || '' }}
           # OAuth TOTP Secret (https://www.ssl.com/how-to/automate-esigner-ev-code-signing)
           totp_secret: ${{ github.event_name == 'push' && contains(github.ref, 'refs/tags/') && secrets.ES_TOTP_SECRET || secrets.ES_TOTP_SECRET_SANDBOX}}
           environment_name: ${{ github.event_name == 'push' && contains(github.ref, 'refs/tags/') && 'PROD' || 'TEST' }}
@@ -193,7 +193,7 @@ jobs:
           # If we push a new tag - we use real creds, otherwise sandbox
           username: ${{ github.event_name == 'push' && contains(github.ref, 'refs/tags/') && secrets.ES_USERNAME || secrets.ES_USERNAME_SANDBOX }}
           password: ${{ github.event_name == 'push' && contains(github.ref, 'refs/tags/') && secrets.ES_PASSWORD || secrets.ES_PASSWORD_SANDBOX }}
-#          credential_id: ${{  github.event_name == 'push' && contains(github.ref, 'refs/tags/') && secrets.ES_CREDENTIAL_ID || secrets.ES_CREDENTIAL_ID_SANDBOX }}
+          credential_id: ${{  github.event_name == 'push' && contains(github.ref, 'refs/tags/') && secrets.ES_CREDENTIAL_ID || '' }}
           # OAuth TOTP Secret (https://www.ssl.com/how-to/automate-esigner-ev-code-signing)
           totp_secret: ${{ github.event_name == 'push' && contains(github.ref, 'refs/tags/') && secrets.ES_TOTP_SECRET || secrets.ES_TOTP_SECRET_SANDBOX }}
           environment_name: ${{ github.event_name == 'push' && contains(github.ref, 'refs/tags/') && 'PROD' || 'TEST' }}
@@ -211,7 +211,7 @@ jobs:
 
   create-pre-release:
     needs: sign-msi-installer
-    if: ${{ github.event_name == 'push' && contains(github.ref, 'refs/pull/') }}
+    if: ${{ github.ref == 'refs/heads/main' }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
