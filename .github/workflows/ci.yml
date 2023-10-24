@@ -43,8 +43,6 @@ jobs:
         id: wheel-distribution
         run: echo "path=$(ls dist/*.whl)" >> $GITHUB_OUTPUT
       - name: Store the distribution files for use in other stages
-        # `tests` and `publish` will use the same pre-built distributions,
-        # so we make sure to release the exact same package that was tested
         uses: actions/upload-artifact@v3
         with:
           name: python-distribution-files
@@ -66,9 +64,6 @@ jobs:
         with: {name: python-distribution-files, path: dist/}
       - name: Publish Package
         env:
-          # TODO: Set your PYPI_TOKEN as a secret using GitHub UI
-          # - https://pypi.org/help/#apitoken
-          # - https://docs.github.com/en/actions/security-guides/encrypted-secrets
           TWINE_REPOSITORY: pypi
           TWINE_USERNAME: __token__
           TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
@@ -112,7 +107,6 @@ jobs:
       - name: Retrieve pre-built Windows distribution files
         uses: actions/download-artifact@v3
         with: {name: windows-distribution-files, path: dist/windows/}
-
       - name: Prepare output directory
         run: mkdir -p dist/windows-signed
 
@@ -121,7 +115,6 @@ jobs:
         uses: sslcom/actions-codesigner@develop
         with:
           command: sign
-
           # If we push a new tag - we use real creds, otherwise sandbox
           username: ${{ github.event_name == 'push' && contains(github.ref, 'refs/tags/') && secrets.ES_USERNAME || secrets.ES_USERNAME_SANDBOX }}
           password: ${{ github.event_name == 'push' && contains(github.ref, 'refs/tags/') && secrets.ES_PASSWORD || secrets.ES_PASSWORD_SANDBOX }}
@@ -219,14 +212,11 @@ jobs:
       - name: Retrieve pre-built distribution files
         uses: actions/download-artifact@v3
         with: {name: windows-signed-files, path: dist/windows-signed/}
-      - name: Create Release
+      - name: Create Pre Release
         uses: ncipollo/release-action@v1
-#        env:
-#          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, you do not need to create your own token
         with:
           name: Release ${{ github.ref }}
           artifacts: "dist/windows-signed/*.*"
-#          bodyFile: "body.md"
           commit: main
           tag: ${{ github.ref }}
           draft: true
@@ -243,7 +233,7 @@ jobs:
     steps:
       - name: Retrieve pre-built distribution files
         uses: actions/download-artifact@v3
-        with: {name: windows-distribution-files, path: dist/windows/}
+        with: {name: windows-signed-files, path: dist/windows-signed/}
       - name: Create Release
         uses: ncipollo/release-action@v1
         with:
