@@ -550,7 +550,9 @@ class MainWindow(QtCore.QObject):
             missing_tags = [s for s in filter if s.lower() not in lower_exist]
 
             self._show_msg_box(
-                f"Cannot find {len(missing_tags)} tag(s): {', '.join(missing_tags)}",
+                f"Cannot find {len(missing_tags)} tag(s): {', '.join(missing_tags)}"[
+                    :2000
+                ],
                 icon=QMessageBox.Icon.Warning,
             )
 
@@ -713,6 +715,7 @@ class MainWindow(QtCore.QObject):
 
             try:
                 df = pd.read_excel(filename, header=None)
+                df = df.dropna()
                 tags_to_find = df.iloc[:, 0].tolist()
 
                 self._refresh_tags_tree(
