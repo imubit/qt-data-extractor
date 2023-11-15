@@ -194,10 +194,6 @@ class MainWindow(QtCore.QObject):
 
         if self._dialogManageConnections.exec_() == QDialog.Accepted:
             pass
-            # change_found = False
-            #
-            # for i, conn in enumerate(self._existing_connections):
-            #     if
 
         if len(self._existing_connections) > 0:
             self._dialogManageConnections.buttonBox.removeButton(delete_button)
@@ -478,8 +474,6 @@ class MainWindow(QtCore.QObject):
                 self._dialogCopyProgress.buttonBox.button(
                     QDialogButtonBox.Cancel
                 ).setEnabled(True)
-
-                self._api.delete_connection(dest_conn["name"])
 
             worker = Worker(copy_process_run)
             worker.signals.progress.connect(update_progress)
