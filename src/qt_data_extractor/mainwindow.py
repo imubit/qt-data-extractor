@@ -28,6 +28,7 @@ log = logging.getLogger(__name__)
 WINDOW_DEFAULT_TITLE = "Imubit Data Extractor"
 SHORT_VERSION = f'{__version__.split(".")[0]}.{__version__.split(".")[1]}'
 MAX_TAGS_TO_LOAD = 100
+MAX_PREVIEW_SAMPLES = 500
 ENABLE_EDITING_CONFIG_BEFORE_EXTRACTION = False
 TAGS_FILTER_DEFAULT_PLACEHOLDER = "Search tags by filter..."
 
@@ -221,10 +222,12 @@ class MainWindow(QtCore.QObject):
 
         try:
             df = self._api.read_tag_values_period(
-                source_conn["name"],
-                list(source_tags.keys()),
+                conn_name=source_conn["name"],
+                tags=list(source_tags.keys()),
                 first_timestamp=self._w.dateTimeLeftFrom.dateTime().toPython(),
                 last_timestamp=self._w.dateTimeLeftTo.dateTime().toPython(),
+                time_frequency=self._w.comboSampleRate.currentText(),
+                max_results=MAX_PREVIEW_SAMPLES,
             )
 
             if len(df) == 0:
