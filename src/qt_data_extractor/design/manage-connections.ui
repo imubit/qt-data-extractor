@@ -35,7 +35,7 @@
         <bool>false</bool>
        </property>
        <property name="columnCount">
-        <number>4</number>
+        <number>3</number>
        </property>
        <column>
         <property name="text">
@@ -49,12 +49,7 @@
        </column>
        <column>
         <property name="text">
-         <string>Parameters</string>
-        </property>
-       </column>
-       <column>
-        <property name="text">
-         <string>Enable</string>
+         <string>Enabled</string>
         </property>
        </column>
       </widget>
@@ -65,7 +60,7 @@
         <enum>Qt::Horizontal</enum>
        </property>
        <property name="standardButtons">
-        <set>QDialogButtonBox::Cancel|QDialogButtonBox::Save</set>
+        <set>QDialogButtonBox::Close</set>
        </property>
        <property name="centerButtons">
         <bool>false</bool>
