@@ -158,37 +158,45 @@ class MainWindow(QtCore.QObject):
             self._dialogManageConnections.tableConnections.setItem(
                 i, 0, QTableWidgetItem(conn["name"])
             )
-            itemType = QTableWidgetItem(conn["type"])
-            itemType.setFlags(itemType.flags() & ~QtCore.Qt.ItemIsEditable)
-            self._dialogManageConnections.tableConnections.setItem(i, 1, itemType)
-            itemEnabled = QTableWidgetItem(conn["enabled"])
-            itemEnabled.setCheckState(
+            item_type = QTableWidgetItem(conn["type"])
+            item_type.setFlags(item_type.flags() & ~QtCore.Qt.ItemIsEditable)
+            self._dialogManageConnections.tableConnections.setItem(i, 1, item_type)
+            item_enabled = QTableWidgetItem(conn["enabled"])
+            item_enabled.setFlags(item_enabled.flags() & ~QtCore.Qt.ItemIsEditable)
+            item_enabled.setCheckState(
                 QtCore.Qt.Checked if conn["enabled"] else QtCore.Qt.Unchecked
             )
-            self._dialogManageConnections.tableConnections.setItem(i, 3, itemEnabled)
+            self._dialogManageConnections.tableConnections.setItem(i, 2, item_enabled)
 
         if len(self._existing_connections) > 0:
 
             @QtCore.Slot()
-            def onDeleteConnection():
-                item = self._dialogManageConnections.tableConnections.currentItem()
+            def on_delete_connection():
+                item = self._dialogManageConnections.tableConnections.item(
+                    self._dialogManageConnections.tableConnections.currentRow(), 0
+                )
+
+                if not item:
+                    return
+
+                conn_name = item.text()
+
                 if (
-                    item
-                    and QMessageBox.question(
+                    QMessageBox.question(
                         self._w,
                         self._w.windowTitle(),
-                        f"Delete {item.text()} connection? (this operation cannot be undone)",
+                        f'Delete "{conn_name}" connection? (this operation cannot be undone)',
                         QMessageBox.Yes | QMessageBox.No,
                     )
                     == QMessageBox.StandardButton.Yes
                 ):
-                    self._api.delete_connection(item.text())
+                    self._api.delete_connection(conn_name)
                     self._dialogManageConnections.tableConnections.removeRow(
                         self._dialogManageConnections.tableConnections.currentRow()
                     )
                     self._refresh_connections()
 
-            delete_button.clicked.connect(onDeleteConnection)
+            delete_button.clicked.connect(on_delete_connection)
             self._dialogManageConnections.buttonBox.addButton(
                 delete_button, QDialogButtonBox.ResetRole
             )

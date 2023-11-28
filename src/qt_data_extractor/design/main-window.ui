@@ -565,7 +565,7 @@
                   <item>
                    <widget class="QLabel" name="label_9">
                     <property name="text">
-                     <string>Sample Rate    </string>
+                     <string>Data Frequency</string>
                     </property>
                    </widget>
                   </item>
@@ -624,7 +624,7 @@
                   <item>
                    <widget class="QCheckBox" name="checkboxExtractAttributesOnly">
                     <property name="text">
-                     <string>Extract Attributes Only</string>
+                     <string>Extract Tag Metadata Only</string>
                     </property>
                    </widget>
                   </item>

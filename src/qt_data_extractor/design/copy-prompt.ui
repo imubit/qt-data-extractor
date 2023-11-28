@@ -33,7 +33,7 @@
      <item>
       <widget class="QCheckBox" name="checkboxAttributesOnly">
        <property name="text">
-        <string>Extract Attributes Only</string>
+        <string>Extract Tag Metadata Only</string>
        </property>
       </widget>
      </item>
