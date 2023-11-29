@@ -314,9 +314,15 @@ class MainWindow(QtCore.QObject):
 
         now = datetime.now()
 
+        dest_conn_name = self._dialogCopyPrompt.comboCopyTarget.currentText()
+
+        filename = (
+            f'extractor-output-v{SHORT_VERSION}-{now.strftime("%Y-%m-%dT%H-%M-%S")}'
+        )
+
         file_path = os.path.join(
             self._w.comboArchiveDirectory.currentText(),
-            f'extractor-output-v{SHORT_VERSION}-{now.strftime("%Y-%m-%dT%H-%M-%S")}',
+            filename,
         )
 
         self._dialogCopyPrompt.labelCopyDescription.setText(
@@ -359,18 +365,6 @@ class MainWindow(QtCore.QObject):
             copy_to_timestamp = self._dialogCopyPrompt.dateTimeTo.dateTime().toPython()
             attributes_only = self._dialogCopyPrompt.checkboxAttributesOnly.isChecked()
 
-            self._dialogCopyProgress.textExtractionLog.clear()
-            self._dialogCopyProgress.textExtractionLog.append(
-                f"Opening {file_path}.zip archive..."
-            )
-            dest_conn = self._api.create_connection(
-                conn_name=self._dialogCopyPrompt.comboCopyTarget.currentText(),
-                conn_type="zip",
-                enabled=True,
-                ignore_existing=True,
-                zipfile_path=f"{file_path}.zip",
-            )
-
             self._dialogCopyProgress.buttonBox.button(QDialogButtonBox.Cancel).setText(
                 "Cancel"
             )
@@ -380,7 +374,7 @@ class MainWindow(QtCore.QObject):
             self._dialogCopyProgress.textExtractionLog.clear()
             self._dialogCopyProgress.labelCopy.setText("Extraction in progress...")
             self._dialogCopyProgress.labelFrom.setText(f'From: [{source_conn["name"]}]')
-            self._dialogCopyProgress.labelTo.setText(f'To: [{dest_conn["name"]}]')
+            self._dialogCopyProgress.labelTo.setText(f"To: [{filename}.zip]")
             self._dialogCopyProgress.labelTotalCopied.setText(f"0 / {len(source_tags)}")
             self._dialogCopyProgress.progressBar.setRange(0, len(source_tags))
 
@@ -390,7 +384,7 @@ class MainWindow(QtCore.QObject):
             def update_progress(tag, counter):
                 log.info(f"Extracting tag ({counter}) - {tag}")
                 self._dialogCopyProgress.textExtractionLog.append(
-                    f"Extracting tag {counter} - {tag}..."
+                    f"Extracting tag {counter}: {tag}"
                 )
                 self._dialogCopyProgress.progressBar.setValue(counter - 1)
                 self._dialogCopyProgress.labelFrom.setText(
@@ -403,6 +397,16 @@ class MainWindow(QtCore.QObject):
             def copy_process_run(progress_callback):
                 self._dialogCopyProgress.textExtractionLog.append(
                     f'Initialiizing data extraction from [{source_conn["name"]}]...'
+                )
+                self._dialogCopyProgress.textExtractionLog.append(
+                    f"Opening {file_path}.zip archive..."
+                )
+                dest_conn = self._api.create_connection(
+                    conn_name=dest_conn_name,
+                    conn_type="zip",
+                    enabled=True,
+                    ignore_existing=True,
+                    zipfile_path=f"{file_path}.zip",
                 )
 
                 self._api.copy_attributes(
@@ -472,6 +476,8 @@ class MainWindow(QtCore.QObject):
                 self._dialogCopyProgress.textExtractionLog.append(str(result[2]))
 
             def worker_complete():
+                self._api.delete_connection(dest_conn_name)
+
                 with open(f"{file_path}.log", "w") as writer:
                     writer.write(
                         self._dialogCopyProgress.textExtractionLog.toPlainText()
