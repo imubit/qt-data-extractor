@@ -377,6 +377,7 @@ class MainWindow(QtCore.QObject):
             self._dialogCopyProgress.labelTo.setText(f"To: [{filename}.zip]")
             self._dialogCopyProgress.labelTotalCopied.setText(f"0 / {len(source_tags)}")
             self._dialogCopyProgress.progressBar.setRange(0, len(source_tags))
+            self._dialogCopyProgress.progressBar.setValue(0)
 
             self._dialogCopyProgress.show()
 
