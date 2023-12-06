@@ -127,11 +127,13 @@ class CreateConnectionDialog(QDialog):
                         layout.widget().deleteLater()
                         self._main_layout.removeItem(layout)
 
-            fields = self.connection_type.currentData()["connection_fields"]
+            connection_data = self.connection_type.currentData()
+            if not connection_data:
+                return
+
+            fields = connection_data["connection_fields"]
 
             for i, field_name in enumerate(fields):
-                # print(fields[field_name])
-
                 label = QLabel(f"{fields[field_name]['name']}:")
                 if fields[field_name]["type"] == "str":
                     widget = QLineEdit()
@@ -149,9 +151,7 @@ class CreateConnectionDialog(QDialog):
                 self._main_layout.addWidget(label, 3 + i, 0)
                 self._main_layout.addWidget(widget, 3 + i, 1)
 
-                # self.dynamic_fields.append(label)
                 self.dynamic_fields[field_name] = widget
-                # print(field)
 
             self._main_layout.setSizeConstraint(QLayout.SetMinimumSize)
 
