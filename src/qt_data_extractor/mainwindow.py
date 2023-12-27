@@ -8,7 +8,7 @@ import pandas as pd
 from data_agent.exceptions import GroupAlreadyExists, TargetConnectionError
 from PySide6 import QtCore, QtGui, QtWidgets
 from PySide6.QtUiTools import QUiLoader
-from PySide6.QtWidgets import (
+from PySide6.QtWidgets import (  # QToolTip,
     QDialog,
     QDialogButtonBox,
     QFileDialog,
@@ -33,6 +33,17 @@ ENABLE_EDITING_CONFIG_BEFORE_EXTRACTION = False
 TAGS_FILTER_DEFAULT_PLACEHOLDER = "Search tags by filter..."
 
 bundle_dir = getattr(sys, "_MEIPASS", os.path.abspath(os.path.dirname(__file__)))
+
+
+class NoDelayHintProxyStyle(QtWidgets.QProxyStyle):
+    def __init__(self):
+        QtWidgets.QProxyStyle.__init__(self)
+
+    def styleHint(self, hint, option=..., widget=..., returnData=...):
+        if hint == QtWidgets.QStyle.SH_ToolTip_WakeUpDelay:
+            return 0
+
+        return QtWidgets.QProxyStyle.styleHint(self, hint, option, widget, returnData)
 
 
 class MainWindow(QtCore.QObject):
@@ -69,6 +80,20 @@ class MainWindow(QtCore.QObject):
             parentWidget=self._w,
         )
         self._dialogManageConnections.setWindowTitle(WINDOW_DEFAULT_TITLE)
+
+        self._w.comboSampleRate.setToolTip(
+            """
+            <h3>READ BEFORE CHANGING...</h3><br />
+            <b><i>Changing this setting may have undesirable effects:</i></b>
+            <ul>
+            <li> When used with Osisoft PI plugin and the data has a lower frequency than selected in this option,
+            the data will be "filled forward"", effectively creating a fake data that does not necessarily corresponds
+            to the original signal.</li>
+            </ul>
+        """
+        )
+
+        self._w.comboSampleRate.setStyle(NoDelayHintProxyStyle())
 
         self.threadpool = QtCore.QThreadPool()
 

@@ -573,6 +573,11 @@
                    <widget class="QComboBox" name="comboSampleRate">
                     <item>
                      <property name="text">
+                      <string>Raw Data</string>
+                     </property>
+                    </item>
+                    <item>
+                     <property name="text">
                       <string>1 minute</string>
                      </property>
                     </item>
@@ -599,11 +604,6 @@
                     <item>
                      <property name="text">
                       <string>1 day</string>
-                     </property>
-                    </item>
-                    <item>
-                     <property name="text">
-                      <string>Raw Data</string>
                      </property>
                     </item>
                    </widget>

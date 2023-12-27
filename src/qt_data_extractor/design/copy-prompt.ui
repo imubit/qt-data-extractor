@@ -195,6 +195,11 @@
         </property>
         <item>
          <property name="text">
+          <string>Raw data</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
           <string>1 minute</string>
          </property>
         </item>
@@ -221,11 +226,6 @@
         <item>
          <property name="text">
           <string>1 day</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string>Raw data</string>
          </property>
         </item>
        </widget>
