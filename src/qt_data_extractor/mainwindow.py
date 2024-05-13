@@ -114,9 +114,15 @@ class MainWindow(QtCore.QObject):
             for i in range(0, self._w.treeSelectedTags.topLevelItemCount())
         ]
 
+    @property
+    def _current_connection(self):
+        return self._w.comboLeftConnection.currentData()
+
+    # SLOTS
+
     @QtCore.Slot(str)
     def on_connection_change(self):
-        current_conn = self._w.comboLeftConnection.currentData()
+        current_conn = self._current_connection
         if not current_conn:
             self._refresh_current_connection_view(current_conn=None)
             return
@@ -274,6 +280,16 @@ class MainWindow(QtCore.QObject):
             QMessageBox.critical(self._w, self._w.windowTitle(), str(e))
 
     @QtCore.Slot()
+    def on_selected_tags_change(self):
+        selected_items = len(self._w.treeSelectedTags.selectedItems())
+        total_items = self._w.treeSelectedTags.topLevelItemCount()
+        self._w.labelRightPanelStatus.setText(
+            f"{selected_items} / {total_items} tags"
+            if selected_items > 0
+            else f"{total_items} tags"
+        )
+
+    @QtCore.Slot()
     def on_add_selected_tags(self):
         source_items = self._w.treeLeftTagHierarchy.selectedItems()
 
@@ -298,18 +314,7 @@ class MainWindow(QtCore.QObject):
 
         self._mark_selected_tags()
 
-        @QtCore.Slot()
-        def on_tree_selection_changed():
-            selected_items = len(self._w.treeSelectedTags.selectedItems())
-            total_items = self._w.treeSelectedTags.topLevelItemCount()
-            self._w.labelRightPanelStatus.setText(
-                f"{selected_items} / {total_items} tags"
-                if selected_items > 0
-                else f"{total_items} tags"
-            )
-
-        self._w.treeSelectedTags.itemSelectionChanged.connect(on_tree_selection_changed)
-        on_tree_selection_changed()
+        self.on_selected_tags_change()
 
     @QtCore.Slot()
     def on_remove_selected_tags(self, all):
@@ -547,7 +552,59 @@ class MainWindow(QtCore.QObject):
                     i, font_selected if tag_name in selected_tags else font_deselected
                 )
 
-    def _refresh_tags_tree(self, filter, conn_name, display_attributes):
+    # Dynamic tree expansion
+    @QtCore.Slot(QTreeWidgetItem)
+    def on_tree_expanded(self, clicked_item):
+        conn_name = self._current_connection["name"]
+        display_attributes = OrderedDict(self._current_connection["default_attributes"])
+
+        tag = clicked_item.data(1, QtCore.Qt.UserRole)
+        if tag["HasChildren"]:
+            # Reload children
+            for i in reversed(range(clicked_item.childCount())):
+                clicked_item.removeChild(clicked_item.child(i))
+
+            children = self._api.list_tags(
+                conn_name,
+                filter=tag["Name"],
+                include_attributes=True,
+                max_results=MAX_TAGS_TO_LOAD,
+            )
+
+            for i, child_name in enumerate(children):
+                row = [
+                    str(children[child_name][key])
+                    if key in children[child_name]
+                    else ""
+                    for j, key in enumerate(display_attributes.keys())
+                ]
+
+                child_item = QTreeWidgetItem(row)
+                child_item.setData(0, QtCore.Qt.UserRole, (child_name))
+                child_item.setData(1, QtCore.Qt.UserRole, (children[child_name]))
+
+                clicked_item.addChild(child_item)
+
+    @QtCore.Slot()
+    def on_tree_selection_changed(self):
+        total_items = self._w.treeLeftTagHierarchy.topLevelItemCount()
+        selected_items = len(self._w.treeLeftTagHierarchy.selectedItems())
+        too_many_tags_msg = (
+            " (Too Many Tags to Display - Narrow Your Search)"
+            if total_items >= MAX_TAGS_TO_LOAD
+            else ""
+        )
+        self._w.labelLeftPanelStatus.setText(
+            f"{selected_items} / {total_items} tags {too_many_tags_msg}"
+            if selected_items > 0
+            else f"{total_items} tags {too_many_tags_msg}"
+        )
+
+    @QtCore.Slot()
+    def on_refresh_tags_tree(self, filter):
+        conn_name = self._current_connection["name"]
+        display_attributes = OrderedDict(self._current_connection["default_attributes"])
+
         # Prepare headers
         self._w.treeLeftTagHierarchy.clear()
         self._w.treeLeftTagHierarchy.setColumnCount(len(display_attributes))
@@ -593,56 +650,34 @@ class MainWindow(QtCore.QObject):
                 icon=QMessageBox.Icon.Warning,
             )
 
-        # Dynamic tree expansion
-        @QtCore.Slot(QTreeWidgetItem)
-        def on_tree_expanded(clicked_item):
-            tag = clicked_item.data(1, QtCore.Qt.UserRole)
-            if tag["HasChildren"]:
-                # Reload children
-                for i in reversed(range(clicked_item.childCount())):
-                    clicked_item.removeChild(clicked_item.child(i))
+        self.on_tree_selection_changed()
 
-                children = self._api.list_tags(
-                    conn_name,
-                    filter=tag["Name"],
-                    include_attributes=True,
-                    max_results=MAX_TAGS_TO_LOAD,
-                )
-
-                for i, child_name in enumerate(children):
-                    row = [
-                        str(children[child_name][key])
-                        if key in children[child_name]
-                        else ""
-                        for j, key in enumerate(display_attributes.keys())
-                    ]
-
-                    child_item = QTreeWidgetItem(row)
-                    child_item.setData(0, QtCore.Qt.UserRole, (child_name))
-                    child_item.setData(1, QtCore.Qt.UserRole, (children[child_name]))
-
-                    clicked_item.addChild(child_item)
-
-        self._w.treeLeftTagHierarchy.itemExpanded.connect(on_tree_expanded)
-
-        @QtCore.Slot()
-        def on_tree_selection_changed():
-            selected_items = len(self._w.treeLeftTagHierarchy.selectedItems())
-            too_many_tags_msg = (
-                " (Too Many Tags to Display - Narrow Your Search)"
-                if len(tags) >= MAX_TAGS_TO_LOAD
-                else ""
-            )
-            self._w.labelLeftPanelStatus.setText(
-                f"{selected_items} / {len(tags)} tags {too_many_tags_msg}"
-                if selected_items > 0
-                else f"{len(tags)} tags {too_many_tags_msg}"
-            )
-
-        self._w.treeLeftTagHierarchy.itemSelectionChanged.connect(
-            on_tree_selection_changed
+    @QtCore.Slot(str)
+    def on_tags_file_select(self):
+        filename, filter = QFileDialog.getOpenFileName(
+            parent=self._w,
+            caption="Select Tags File",
+            dir=".",
+            # filter='*.xls, *.xlsx, *.xlsm, *.xlsb, *.odf, *.ods, *.odt')
+            filter="*.xlsx",
         )
-        on_tree_selection_changed()
+        if not filename:
+            return
+
+        try:
+            df = pd.read_excel(filename, header=None)
+            df = df.dropna()
+            tags_to_find = df.iloc[:, 0].tolist()
+
+            self.on_refresh_tags_tree(filter=tags_to_find)
+            self._w.comboLeftTagFilter.clear()
+
+        except Exception as e:
+            mb = QMessageBox(self._w)
+            # mb.setIcon(QMessageBox.Icon.Error)
+            mb.setWindowTitle(self._w.windowTitle())
+            mb.setText(f"Error reading excel file: {str(e)}")
+            mb.exec_()
 
     def _refresh_connections(self):
         """ """
@@ -721,55 +756,10 @@ class MainWindow(QtCore.QObject):
         # - Filters configuration -
         self._w.comboLeftTagFilter.setCurrentText(TAGS_FILTER_DEFAULT_PLACEHOLDER)
 
-        # Update panel on filter change
-        @QtCore.Slot(str)
-        def on_name_filter_changed(text):
-            self._refresh_tags_tree(
-                filter=text,
-                conn_name=current_conn["name"],
-                display_attributes=OrderedDict(current_conn["default_attributes"]),
-            )
-
-        self._w.comboLeftTagFilter.textActivated.connect(on_name_filter_changed)
-        self._w.comboLeftTagFilter.installEventFilter(self._filterWidgetEventInspector)
-
         if "name" in current_conn["supported_filters"]:
             self._w.comboLeftTagFilter.show()
         else:
             self._w.comboLeftTagFilter.hide()
-
-        @QtCore.Slot(str)
-        def on_tags_file_select():
-            filename, filter = QFileDialog.getOpenFileName(
-                parent=self._w,
-                caption="Select Tags File",
-                dir=".",
-                # filter='*.xls, *.xlsx, *.xlsm, *.xlsb, *.odf, *.ods, *.odt')
-                filter="*.xlsx",
-            )
-            if not filename:
-                return
-
-            try:
-                df = pd.read_excel(filename, header=None)
-                df = df.dropna()
-                tags_to_find = df.iloc[:, 0].tolist()
-
-                self._refresh_tags_tree(
-                    filter=tags_to_find,
-                    conn_name=current_conn["name"],
-                    display_attributes=OrderedDict(current_conn["default_attributes"]),
-                )
-                self._w.comboLeftTagFilter.clear()
-
-            except Exception as e:
-                mb = QMessageBox(self._w)
-                # mb.setIcon(QMessageBox.Icon.Error)
-                mb.setWindowTitle(self._w.windowTitle())
-                mb.setText(f"Error reading excel file: {str(e)}")
-                mb.exec_()
-
-        self._w.buttonLeftTagsFileSelect.clicked.connect(on_tags_file_select)
 
         if "tags_file" in current_conn["supported_filters"]:
             self._w.buttonLeftTagsFileSelect.show()
@@ -789,10 +779,11 @@ class MainWindow(QtCore.QObject):
             self._w.widgetLeftTimeFilter.hide()
 
         # Tag tree
-        # self._refreshTagsTree(filter=filter, conn_name=current_conn['name'],
-        #                       display_attributes=OrderedDict(current_conn['default_attributes']))
+        # self.on_refresh_tags_tree(filter=filter)
 
-    def _setup_panel(self):
+    def setup(self):
+        self._w.setWindowTitle(f"{WINDOW_DEFAULT_TITLE} - v{__version__}")
+
         # Connection list
         self._refresh_connections()
 
@@ -800,19 +791,35 @@ class MainWindow(QtCore.QObject):
             self.on_connection_change
         )
 
-        @QtCore.Slot()
-        def on_connect():
-            self._enable_current_connection()
-
-        self._w.buttonLeftConnect.clicked.connect(on_connect)
+        self._w.buttonLeftConnect.clicked.connect(self._enable_current_connection)
 
         self.on_connection_change()
 
-    def _setup_manipulation_controls(self):
+        # Menu Bar
+        self._w.actionAddNewConnection.triggered.connect(self.on_create_new_connection)
+        self._w.actionManageConnections.triggered.connect(self.on_manage_connections)
+
+        # Display
+
+        self._w.comboLeftTagFilter.textActivated.connect(self.on_refresh_tags_tree)
+        self._w.comboLeftTagFilter.installEventFilter(self._filterWidgetEventInspector)
+
+        self._w.treeLeftTagHierarchy.itemExpanded.connect(self.on_tree_expanded)
+        self._w.treeLeftTagHierarchy.itemSelectionChanged.connect(
+            self.on_tree_selection_changed
+        )
+
+        self._w.treeSelectedTags.itemSelectionChanged.connect(
+            self.on_selected_tags_change
+        )
+
+        # Controls
         self._w.buttonLeftView.clicked.connect(lambda: self.on_view_tags(left=True))
         # shortcut_view = QtGui.QShortcut(QtGui.QKeySequence("F3"), self._w)
         # shortcut_view.activated.connect(self.on_view_tags)
         self._w.buttonRightView.clicked.connect(lambda: self.on_view_tags(left=False))
+
+        self._w.buttonLeftTagsFileSelect.clicked.connect(self.on_tags_file_select)
 
         self._w.buttonAddSelectedTags.clicked.connect(self.on_add_selected_tags)
 
@@ -856,17 +863,6 @@ class MainWindow(QtCore.QObject):
         self._w.buttonExit.clicked.connect(QtWidgets.QApplication.instance().quit)
         shortcut_quit = QtGui.QShortcut(QtGui.QKeySequence("Alt+F4"), self._w)
         shortcut_quit.activated.connect(QtWidgets.QApplication.instance().quit)
-
-    def _setup_menu_bar(self):
-        self._w.actionAddNewConnection.triggered.connect(self.on_create_new_connection)
-        self._w.actionManageConnections.triggered.connect(self.on_manage_connections)
-
-    def setup(self):
-        self._w.setWindowTitle(f"{WINDOW_DEFAULT_TITLE} - v{__version__}")
-
-        self._setup_panel()
-        self._setup_menu_bar()
-        self._setup_manipulation_controls()
 
     def show(self):
         self._w.show()
