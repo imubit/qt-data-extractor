@@ -13,6 +13,7 @@ Overview <readme>
 Extracting data from Osisoft PI <osisoft-pi>
 Extracting data from AspenTech IP21 <aspen-ip21>
 Contributions & Help <contributing>
+Development Information <development>
 License <license>
 Authors <authors>
 Changelog <changelog>
