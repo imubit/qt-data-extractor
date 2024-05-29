@@ -41,7 +41,6 @@ PS C:\> qt-data-extractor
 
 * If the application is not starting this way, Python Scripts directory is probably not in the PATH. In this case you can run the script from Python installation directory (i.e. `c:\Python\Python39\Scripts\qt-data-extractor.exe`)
 
-
 ## Getting Started
 
 * Configure the target historian using `Server` drop down.
