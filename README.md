@@ -13,14 +13,13 @@
 # Industrial Data Extractor
 
 Industrial Data Extractor is an open-source Windows application to extract process data from industrial systems
-and historians.
+and historians. The extractor supports browsing historian tags and extracting periods of data into zipped CSV files.
 
-The following systems are currently supported:
+Supported historians are:
 
 * [Osisoft PI](https://github.com/imubit/data-agent-osisoft-pi)
 * [AspenTech InfoPlus.21](https://github.com/imubit/data-agent-aspen-ip21)
 
-It supports browsing and selecting tags on the target system and extract periods of data into zipped CSVs.
 
 ## Installation
 
