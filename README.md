@@ -24,6 +24,24 @@ Supported historians are:
 ## Installation
 
 Please use https://github.com/imubit/qt-data-extractor/releases to download the latest version of the extractor.
+You can use Windows setup file to install Data Extractor on Windows workstation or you can use Extractor executable to run the extractor without installation.
+
+### Python Install
+
+Python package distribution is available in addition to Windows installer:
+
+```python
+pip install qt-data-extractor
+```
+
+Starting the application from Windows Power Shell:
+
+```
+PS C:\> qt-data-extractor
+```
+
+* If the application is not starting this way, Python Scripts directory is probably not in the PATH. In this case you can run the script from Python installation directory (i.e. `c:\Python\Python39\Scripts\qt-data-extractor.exe`)
+
 
 ## Getting Started
 
@@ -36,19 +54,3 @@ Please use https://github.com/imubit/qt-data-extractor/releases to download the 
 * Wait until extraction is finished.
 
 Read documentation for a specific historian before attempting to extract data.
-
-### Python Install
-
-Python package distribution is available in addition to Windows installer.
-
-```python
-pip install qt-data-extractor
-```
-
-### Starting the application from Windows Power Shell
-
-```
-PS C:\> qt-data-extractor
-```
-
-* If the application is not starting this way, Python Scripts directory is probably not in the PATH. In this case you can run the script from Python installation directory (i.e. `c:\Python\Python39\Scripts\qt-data-extractor.exe`)
