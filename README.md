@@ -17,9 +17,8 @@ and historians. The extractor supports browsing historian tags and extracting pe
 
 Supported historians are:
 
-* [Osisoft PI](https://github.com/imubit/data-agent-osisoft-pi)
-* [AspenTech InfoPlus.21](https://github.com/imubit/data-agent-aspen-ip21)
-
+* [Aveva (Osisoft) PI](osisoft-pi)
+* [AspenTech InfoPlus.21](aspen-ip21)
 
 ## Installation
 
