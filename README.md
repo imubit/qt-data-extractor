@@ -18,15 +18,13 @@ and historians.
 The following systems are currently supported:
 
 * [Osisoft PI](https://github.com/imubit/data-agent-osisoft-pi)
+* [AspenTech InfoPlus.21](https://github.com/imubit/data-agent-aspen-ip21)
 
 It supports browsing and selecting tags on the target system and extract periods of data into zipped CSVs.
 
 ## Installation
 
 Please use https://github.com/imubit/qt-data-extractor/releases to download the latest version of the extractor.
-
-If you would like to extract data from Osisoft PI historian (which is the only one supported at this point). Please
-make sure you have [PI SDK](https://techsupport.osisoft.com/Products/PI-System-Access/PI-SDK/Overview) and AF SDK installed and configured on your workstation.
 
 ## Getting Started
 
@@ -38,9 +36,16 @@ make sure you have [PI SDK](https://techsupport.osisoft.com/Products/PI-System-A
 * Click `Extract` and confirm your selection.
 * Wait until extraction is finished.
 
+### Osisoft PI historian prerequisites
+
+Please make sure you have [PI SDK](https://techsupport.osisoft.com/Products/PI-System-Access/PI-SDK/Overview) and AF SDK installed and configured on your workstation before attempting to access PI historian
+
+
 ## Development
 
 ### Python Install
+
+Python package distribution is available in addition to Windows installer.
 
 ```python
 pip install qt-data-extractor

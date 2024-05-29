@@ -1,17 +1,7 @@
-# qt-data-extractor
+# Industrial Data Extractor
 
-Add a short description here!
-
-
-## Note
-
-> This is the main page of your project's [Sphinx] documentation. It is
-> formatted in [Markdown]. Add additional pages by creating md-files in
-> `docs` or rst-files (formatted in [reStructuredText]) and adding links to
-> them in the `Contents` section below.
->
-> Please check [Sphinx] and [MyST] for more information
-> about how to document your project and how to configure your preferences.
+Industrial Data Extractor is an open-source Windows application to extract process data from industrial systems
+and historians.
 
 
 ## Contents
@@ -20,6 +10,8 @@ Add a short description here!
 :maxdepth: 2
 
 Overview <readme>
+Extracting data from Osisoft PI <osisoft-pi>
+Extracting data from AspenTech IP21 <aspen-ip21>
 Contributions & Help <contributing>
 License <license>
 Authors <authors>
