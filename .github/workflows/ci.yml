@@ -200,6 +200,7 @@ jobs:
           name: windows-signed-files
           path: dist/windows-signed/
           retention-days: 1
+          merge-multiple: true
 
 
   create-pre-release:
