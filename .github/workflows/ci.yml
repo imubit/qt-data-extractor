@@ -28,9 +28,9 @@ jobs:
     outputs:
       wheel-distribution: ${{ steps.wheel-distribution.outputs.path }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with: {fetch-depth: 0}  # deep clone for setuptools-scm
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         id: setup-python
         with: {python-version: "3.11"}
       - name: Run static analysis and format checkers
@@ -43,7 +43,7 @@ jobs:
         id: wheel-distribution
         run: echo "path=$(ls dist/*.whl)" >> $GITHUB_OUTPUT
       - name: Store the distribution files for use in other stages
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: python-distribution-files
           path: dist/
@@ -56,11 +56,11 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with: {python-version: "3.11"}
       - name: Retrieve pre-built distribution files
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with: {name: python-distribution-files, path: dist/}
       - name: Publish Package
         env:
@@ -75,14 +75,14 @@ jobs:
     outputs:
       windows-distribution: ${{ steps.windows-distribution.outputs.path }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with: {fetch-depth: 0}  # deep clone for setuptools-scm
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         id: setup-python
         with: {python-version: "3.9"}
 
       - name: Retrieve pre-built distribution files
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with: {name: python-distribution-files, path: dist/}
       - name: Build Windows executable
         run: pipx run tox -e winexe
@@ -94,7 +94,7 @@ jobs:
       - name: Store the distribution files for use in other stages
         # `tests` and `publish` will use the same pre-built distributions,
         # so we make sure to release the exact same package that was tested
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: windows-distribution-files
           path: dist/windows/
@@ -105,7 +105,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Retrieve pre-built Windows distribution files
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with: {name: windows-distribution-files, path: dist/windows/}
       - name: Prepare output directory
         run: mkdir -p dist/windows-signed
@@ -127,7 +127,7 @@ jobs:
           output_path: dist/windows-signed
 
       - name: Upload Signed Files
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: windows-signed-files
           path: dist/windows-signed/
@@ -146,7 +146,7 @@ jobs:
           echo "$WIX\\bin" >> $GITHUB_PATH
           echo "C:\\Program Files\\go-msi" >> $GITHUB_PATH
 
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with: {fetch-depth: 0}  # deep clone for setuptools-scm
       - name: Retrieve pre-built distribution files
         uses: actions/download-artifact@v3
@@ -160,7 +160,7 @@ jobs:
           go-msi make --arch amd64 --msi "dist/windows-installer/data-extractor-installer.msi" --out "$PWD/build" --version $MSI_VERSION
 
       - name: Store the installer files for use in other stages
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: windows-installer-files
           path: dist/windows-installer/
@@ -171,10 +171,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Retrieve pre-built Windows installer files
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with: {name: windows-installer-files, path: dist/windows-installer/}
       - name: Retrieve previously signed files
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with: {name: windows-signed-files, path: dist/windows-signed/}
 
         # https://www.ssl.com/how-to/cloud-code-signing-integration-with-github-actions/
@@ -195,7 +195,7 @@ jobs:
           output_path: dist/windows-signed
 
       - name: Upload Signed Files
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: windows-signed-files
           path: dist/windows-signed/
@@ -210,7 +210,7 @@ jobs:
       contents: write
     steps:
       - name: Retrieve pre-built distribution files
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with: {name: windows-signed-files, path: dist/windows-signed/}
       - name: Create Pre Release
         uses: ncipollo/release-action@v1
@@ -232,7 +232,7 @@ jobs:
       contents: write
     steps:
       - name: Retrieve pre-built distribution files
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with: {name: windows-signed-files, path: dist/windows-signed/}
       - name: Create Release
         uses: ncipollo/release-action@v1
