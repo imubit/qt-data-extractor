@@ -602,55 +602,65 @@ class MainWindow(QtCore.QObject):
 
     @QtCore.Slot()
     def on_refresh_tags_tree(self, filter):
-        conn_name = self._current_connection["name"]
-        display_attributes = OrderedDict(self._current_connection["default_attributes"])
-
-        # Prepare headers
-        self._w.treeLeftTagHierarchy.clear()
-        self._w.treeLeftTagHierarchy.setColumnCount(len(display_attributes))
-        self._w.treeLeftTagHierarchy.setHeaderLabels(
-            [a["Name"] for a in display_attributes.values()]
-        )
-
-        # Update items
-        tags = self._api.list_tags(
-            conn_name,
-            filter=filter,
-            include_attributes=list(display_attributes.keys()),
-            max_results=MAX_TAGS_TO_LOAD,
-        )
-
-        # Update top level rows
-        for i, tag_name in enumerate(tags):
-            row = [
-                str(tags[tag_name][key]) if key in tags[tag_name] else ""
-                for j, key in enumerate(display_attributes.keys())
-            ]
-
-            item = QTreeWidgetItem(row)
-            item.setData(0, QtCore.Qt.UserRole, (tag_name))
-            item.setData(1, QtCore.Qt.UserRole, (tags[tag_name]))
-
-            if tags[tag_name]["HasChildren"]:
-                item.setChildIndicatorPolicy(QTreeWidgetItem.ShowIndicator)
-
-            self._w.treeLeftTagHierarchy.addTopLevelItem(item)
-
-        self._mark_selected_tags()
-
-        # If filter is a list of tags - we need to show which tags were not found
-        if isinstance(filter, list):
-            lower_exist = [s.lower() for s in tags.keys()]
-            missing_tags = [s for s in filter if s.lower() not in lower_exist]
-
-            self._show_msg_box(
-                f"Cannot find {len(missing_tags)} tag(s): {', '.join(missing_tags)}"[
-                    :2000
-                ],
-                icon=QMessageBox.Icon.Warning,
+        try:
+            conn_name = self._current_connection["name"]
+            display_attributes = OrderedDict(
+                self._current_connection["default_attributes"]
             )
 
-        self.on_tree_selection_changed()
+            # Prepare headers
+            self._w.treeLeftTagHierarchy.clear()
+            self._w.treeLeftTagHierarchy.setColumnCount(len(display_attributes))
+            self._w.treeLeftTagHierarchy.setHeaderLabels(
+                [a["Name"] for a in display_attributes.values()]
+            )
+
+            # Update items
+            tags = self._api.list_tags(
+                conn_name,
+                filter=filter,
+                include_attributes=list(display_attributes.keys()),
+                max_results=MAX_TAGS_TO_LOAD,
+            )
+
+            # Update top level rows
+            for i, tag_name in enumerate(tags):
+                row = [
+                    str(tags[tag_name][key]) if key in tags[tag_name] else ""
+                    for j, key in enumerate(display_attributes.keys())
+                ]
+
+                item = QTreeWidgetItem(row)
+                item.setData(0, QtCore.Qt.UserRole, (tag_name))
+                item.setData(1, QtCore.Qt.UserRole, (tags[tag_name]))
+
+                if tags[tag_name]["HasChildren"]:
+                    item.setChildIndicatorPolicy(QTreeWidgetItem.ShowIndicator)
+
+                self._w.treeLeftTagHierarchy.addTopLevelItem(item)
+
+            self._mark_selected_tags()
+
+            # If filter is a list of tags - we need to show which tags were not found
+            if isinstance(filter, list):
+                lower_exist = [s.lower() for s in tags.keys()]
+                missing_tags = [s for s in filter if s.lower() not in lower_exist]
+
+                self._show_msg_box(
+                    f"Cannot find {len(missing_tags)} tag(s): {', '.join(missing_tags)}"[
+                        :2000
+                    ],
+                    icon=QMessageBox.Icon.Warning,
+                )
+
+            self.on_tree_selection_changed()
+
+        except Exception as e:
+            mb = QMessageBox(self._w)
+            # mb.setIcon(QMessageBox.Icon.Error)
+            mb.setWindowTitle(self._w.windowTitle())
+            mb.setText(f"Error retrieving tags: {str(e)}")
+            mb.exec_()
 
     @QtCore.Slot(str)
     def on_tags_file_select(self):
