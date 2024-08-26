@@ -304,7 +304,7 @@ class MainWindow(QtCore.QObject):
             if tag_name in self._get_selected_tags():
                 continue
 
-            row = [tag_name]
+            row = [source_tags[tag_name]["Name"]]
 
             item = QTreeWidgetItem(row)
             item.setData(0, QtCore.Qt.UserRole, (tag_name))
