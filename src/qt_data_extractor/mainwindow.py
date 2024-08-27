@@ -31,6 +31,7 @@ MAX_TAGS_TO_LOAD = 100
 MAX_PREVIEW_SAMPLES = 500
 ENABLE_EDITING_CONFIG_BEFORE_EXTRACTION = False
 TAGS_FILTER_DEFAULT_PLACEHOLDER = "Search tags by filter..."
+WILDCARD_CHARACTERS = ["*", "%", "?"]
 
 bundle_dir = getattr(sys, "_MEIPASS", os.path.abspath(os.path.dirname(__file__)))
 
@@ -644,14 +645,21 @@ class MainWindow(QtCore.QObject):
             # If filter is a list of tags - we need to show which tags were not found
             if isinstance(filter, list):
                 lower_exist = [s.lower() for s in tags.keys()]
-                missing_tags = [s for s in filter if s.lower() not in lower_exist]
 
-                self._show_msg_box(
-                    f"Cannot find {len(missing_tags)} tag(s): {', '.join(missing_tags)}"[
-                        :2000
-                    ],
-                    icon=QMessageBox.Icon.Warning,
-                )
+                missing_tags = [
+                    s
+                    for s in filter
+                    if not any(c in s for c in WILDCARD_CHARACTERS)
+                    and s.lower() not in lower_exist
+                ]
+
+                if missing_tags:
+                    self._show_msg_box(
+                        f"Cannot find {len(missing_tags)} tag(s): {', '.join(missing_tags)}"[
+                            :2000
+                        ],
+                        icon=QMessageBox.Icon.Warning,
+                    )
 
             self.on_tree_selection_changed()
 
