@@ -788,7 +788,7 @@ class MainWindow(QtCore.QObject):
         if "time" in current_conn["supported_filters"]:
             # now = QtCore.QDateTime.currentDateTime()
             end_time = QtCore.QDateTime.currentDateTimeUtc()
-            start_time = end_time.addDays(-30)
+            start_time = end_time.addDays(-365)
             self._w.dateTimeLeftFrom.setDateTime(start_time)
             self._w.dateTimeLeftTo.setDateTime(end_time)
             self._w.widgetLeftTimeFilter.show()
