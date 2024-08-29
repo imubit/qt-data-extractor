@@ -141,6 +141,17 @@ class CreateConnectionDialog(QDialog):
                     widget = QComboBox()
                     for item in fields[field_name]["values"]:
                         widget.addItem(item)
+                    if (
+                        "default_value" in fields[field_name]
+                        and fields[field_name]["default_value"]
+                        in fields[field_name]["values"]
+                    ):
+                        widget.setCurrentIndex(
+                            fields[field_name]["values"].index(
+                                fields[field_name]["default_value"]
+                            )
+                        )
+
                 elif fields[field_name]["type"] == "local_folder":
                     widget = DirectoryBrowserField()
                 elif fields[field_name]["type"] == "local_file":
