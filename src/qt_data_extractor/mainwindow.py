@@ -602,7 +602,7 @@ class MainWindow(QtCore.QObject):
         )
 
     @QtCore.Slot()
-    def on_refresh_tags_tree(self, filter):
+    def on_refresh_tags_tree(self, filter, max_results=MAX_TAGS_TO_LOAD):
         try:
             conn_name = self._current_connection["name"]
             display_attributes = OrderedDict(
@@ -621,7 +621,7 @@ class MainWindow(QtCore.QObject):
                 conn_name,
                 filter=filter,
                 include_attributes=list(display_attributes.keys()),
-                max_results=MAX_TAGS_TO_LOAD,
+                max_results=max_results,
             )
 
             # Update top level rows
@@ -687,7 +687,7 @@ class MainWindow(QtCore.QObject):
             df = df.dropna()
             tags_to_find = df.iloc[:, 0].tolist()
 
-            self.on_refresh_tags_tree(filter=tags_to_find)
+            self.on_refresh_tags_tree(filter=tags_to_find, max_results=0)
             self._w.comboLeftTagFilter.clear()
 
         except Exception as e:
