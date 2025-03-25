@@ -559,6 +559,7 @@ class MainWindow(QtCore.QObject):
         conn_name = self._current_connection["name"]
         display_attributes = OrderedDict(self._current_connection["default_attributes"])
 
+        tag_id = clicked_item.data(0, QtCore.Qt.UserRole)
         tag = clicked_item.data(1, QtCore.Qt.UserRole)
         if tag["HasChildren"]:
             # Reload children
@@ -567,14 +568,14 @@ class MainWindow(QtCore.QObject):
 
             children = self._api.list_tags(
                 conn_name,
-                filter=tag["Name"],
+                filter=tag_id,
                 include_attributes=True,
                 max_results=MAX_TAGS_TO_LOAD,
             )
 
             for i, child_name in enumerate(children):
                 row = [
-                    str(children[child_name][key])
+                    str(children[child_name][key] or "")
                     if key in children[child_name]
                     else ""
                     for j, key in enumerate(display_attributes.keys())
@@ -627,7 +628,7 @@ class MainWindow(QtCore.QObject):
             # Update top level rows
             for i, tag_name in enumerate(tags):
                 row = [
-                    str(tags[tag_name][key]) if key in tags[tag_name] else ""
+                    str(tags[tag_name][key] or "") if key in tags[tag_name] else ""
                     for j, key in enumerate(display_attributes.keys())
                 ]
 
