@@ -605,6 +605,9 @@ class MainWindow(QtCore.QObject):
     @QtCore.Slot()
     def on_refresh_tags_tree(self, filter, max_results=MAX_TAGS_TO_LOAD):
         try:
+            if isinstance(filter, str):
+                filter = filter.strip()
+
             conn_name = self._current_connection["name"]
             display_attributes = OrderedDict(
                 self._current_connection["default_attributes"]
